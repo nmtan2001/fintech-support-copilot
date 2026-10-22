@@ -95,14 +95,23 @@ def main():
         retrieval_backend = st.selectbox("FAQ retrieval", retrieval_backends)
         min_confidence = st.slider("Minimum classifier confidence (demo threshold)", 0.0, 1.0, 0.0, 0.05)
         st.caption("Classifier probabilities are not calibrated. Set 0 to disable threshold-based abstention.")
-        openai_api_key = get_setting("OPENAI_API_KEY")
-        has_key = bool(openai_api_key)
-        use_llm = st.checkbox("Generate answer with OpenAI", value=False, disabled=not has_key)
-        llm_model = st.text_input("LLM model", value="gpt-4.1-mini") if use_llm else None
+        nvidia_api_key = get_setting("NVIDIA_API_KEY")
+        has_key = bool(nvidia_api_key)
+        use_llm = st.checkbox("Generate answer with an LLM", value=has_key, disabled=not has_key)
         if use_llm:
-            st.caption("The question and retrieved demo policies are sent to the selected LLM API.")
-        elif not has_key:
-            st.caption("Set OPENAI_API_KEY to enable optional LLM generation. Source-only mode works offline.")
+            llm_model = st.text_input(
+                "NVIDIA model ID",
+                value=get_setting("NVIDIA_MODEL", ""),
+                placeholder="Enter a model enabled for your NVIDIA API key",
+            )
+            llm_api_key = nvidia_api_key
+        else:
+            llm_api_key = None
+            llm_model = None
+        if use_llm:
+            st.caption("The question and retrieved demo policies are sent to NVIDIA.")
+        else:
+            st.caption("Set NVIDIA_API_KEY to enable LLM generation.")
 
     question = st.text_area(
         "Customer question",
@@ -118,7 +127,7 @@ def main():
             question,
             min_confidence=min_confidence,
             llm_model=llm_model,
-            llm_api_key=openai_api_key if use_llm else None,
+            llm_api_key=llm_api_key,
         )
     except (ImportError, ValueError, RuntimeError, OSError) as exc:
         st.error(f"Could not process this request: {exc}")

@@ -1,6 +1,6 @@
-import sys
+import json
+from io import BytesIO
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
@@ -67,12 +67,42 @@ def test_rejects_llm_citations_outside_retrieved_sources(monkeypatch):
         "My card was stolen", intent="lost_or_stolen_card"
     ))
 
-    class FakeOpenAI:
-        def __init__(self, **kwargs):
-            self.responses = SimpleNamespace(create=lambda **kwargs: SimpleNamespace(
-                output_text="Please freeze it. [demo-card-99]"
-            ))
+    def fake_urlopen(request, timeout):
+        return BytesIO(json.dumps({"choices": [{"message": {
+            "content": "Please freeze it. [demo-card-99]"
+        }}]}).encode())
 
-    monkeypatch.setitem(sys.modules, "openai", SimpleNamespace(OpenAI=FakeOpenAI))
+    monkeypatch.setattr("fintech_support.copilot.urlopen", fake_urlopen)
     with pytest.raises(RuntimeError, match="outside the retrieved FAQ"):
-        grounded_answer("My card was stolen", hits, llm_model="fake")
+        grounded_answer("My card was stolen", hits, llm_model="fake", llm_api_key="test-key")
+
+
+def test_nvidia_chat_api_and_grounded_citation(monkeypatch):
+    hits = tuple(make_copilot("lost_or_stolen_card").retriever.search(
+        "My card was stolen", intent="lost_or_stolen_card"
+    ))
+    captured = {}
+
+    def fake_urlopen(request, timeout):
+        captured["url"] = request.full_url
+        captured["authorization"] = request.get_header("Authorization")
+        captured["timeout"] = timeout
+        captured["payload"] = json.loads(request.data)
+        return BytesIO(json.dumps({"choices": [{"message": {
+            "content": "Freeze the card in the provider app. [demo-lost-01]"
+        }}]}).encode())
+
+    monkeypatch.setattr("fintech_support.copilot.urlopen", fake_urlopen)
+    answer = grounded_answer(
+        "My card was stolen",
+        hits,
+        llm_model="nvidia/example-instruct-model",
+        llm_api_key="test-key",
+    )
+
+    assert "[demo-lost-01]" in answer
+    assert captured["url"] == "https://integrate.api.nvidia.com/v1/chat/completions"
+    assert captured["authorization"] == "Bearer test-key"
+    assert captured["timeout"] == 20.0
+    assert captured["payload"]["model"] == "nvidia/example-instruct-model"
+    assert captured["payload"]["temperature"] == 0

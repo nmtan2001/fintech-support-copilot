@@ -17,7 +17,7 @@ training = [
     "transformers==4.57.1",
 ]
 dev = ["pytest>=8,<10"]
-demo = ["streamlit>=1.30,<2", "openai>=1.50,<3"]
+demo = ["streamlit>=1.30,<2"]
 semantic = ["sentence-transformers>=3,<6"]
 inference = ["torch>=2.2,<3", "transformers==4.57.1"]
 

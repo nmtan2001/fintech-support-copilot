@@ -34,7 +34,7 @@ def main():
     parser.add_argument("--split", choices=["validation", "test"], default="validation")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--data-dir", type=Path, default=Path("data/raw"))
-    parser.add_argument("--output", type=Path, default=Path("outputs/evaluation/error_analysis.json"))
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
     if args.model == "distilbert":
@@ -61,7 +61,10 @@ def main():
         "metrics": evaluate(actual, predicted),
         **collect_errors(frame["text"].tolist(), actual, predicted),
     }
-    write_json(args.output, result)
+    output = args.output or Path(
+        f"outputs/evaluation/{args.model}_{args.split}_error_analysis.json"
+    )
+    write_json(output, result)
     print(f"{classifier_name}, {args.split}: {result['error_count']} errors / {len(frame)} examples")
     for row in result["top_confusions"][:5]:
         print(f"  {row['actual']} -> {row['predicted']}: {row['count']}")

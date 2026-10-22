@@ -1,0 +1,26 @@
+[
+  {
+    "question": "My card payment was declined. How can I fix it?",
+    "expected_intent": "declined_card_payment",
+    "expected_status": "answered",
+    "expected_faq_id": "demo-card-02"
+  },
+  {
+    "question": "The transfer shows complete but my friend has no money",
+    "expected_intent": "transfer_not_received_by_recipient",
+    "expected_status": "answered",
+    "expected_faq_id": "demo-transfer-02"
+  },
+  {
+    "question": "My card was stolen, how do I secure it?",
+    "expected_intent": "lost_or_stolen_card",
+    "expected_status": "answered",
+    "expected_faq_id": "demo-lost-01"
+  },
+  {
+    "question": "What exchange rate do you offer?",
+    "expected_intent": "exchange_rate",
+    "expected_status": "unsupported_intent",
+    "expected_faq_id": null
+  }
+]
