@@ -38,7 +38,7 @@
     "id": "demo-transfer-03",
     "title": "Delayed transfer: escalation",
     "intents": ["pending_transfer", "transfer_not_received_by_recipient"],
-    "content": "For an unexpectedly delayed transfer, the demo recommends opening the transfer details and contacting human support if the listed expected arrival window has passed. Only the actual payment provider can investigate the transaction. No banking tool is connected to this prototype.",
+    "content": "For an unexpectedly delayed transfer, the demo recommends opening the transfer details and contacting human support if the listed expected arrival window has passed. Only the actual payment provider can investigate a real transaction. This prototype can only read synthetic demo transaction records.",
     "source": "Synthetic demo policy: demo-transfer-03"
   },
   {

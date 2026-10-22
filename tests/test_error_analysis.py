@@ -32,3 +32,14 @@ def test_error_summary_reports_top_confusion():
     assert result["top_confusions"] == [{"actual": "card", "predicted": "transfer", "count": 2}]
     with pytest.raises(ValueError, match="equal lengths"):
         collect_errors(["first"], ["card"], [])
+
+
+def test_high_confidence_errors_sorted_first():
+    result = collect_errors(
+        ["one", "two", "three"],
+        ["card", "transfer", "card"],
+        ["transfer", "card", "card"],
+        confidences=[0.2, 0.95, 0.7],
+    )
+    assert result["high_confidence_errors"] == 1
+    assert result["examples"][0]["text"] == "two"
