@@ -28,12 +28,7 @@ def load_classifier(
     model_id: str | None,
     model_token: str | None,
     model_revision: str | None,
-    endpoint_url: str | None = None,
 ):
-    if model_choice == "DistilBERT (HF Inference)":
-        return IntentClassifier.from_huggingface(
-            model_id=model_id or DEFAULT_HF_MODEL_ID, token=model_token, endpoint_url=endpoint_url,
-        )
     return IntentClassifier.from_artifacts(
         transformer_dir=ROOT / "outputs/distilbert/model",
         baseline_path=ROOT / "outputs/baseline/model.joblib",
@@ -68,8 +63,6 @@ def main():
     missing = [name for name in ("torch", "transformers") if importlib.util.find_spec(name) is None]
     transformer_available = transformer_configured and not missing
     choices = []
-    if hf_token:
-        choices.append("DistilBERT (HF Inference)")
     if transformer_available:
         choices.append("DistilBERT")
     if (ROOT / "outputs/baseline/model.joblib").is_file():
@@ -79,7 +72,7 @@ def main():
         st.info(
             "Local DistilBERT inference requires: "
             + ", ".join(missing)
-            + ". Set HF_TOKEN in Streamlit Secrets to classify through HF Inference."
+            + ". Install the CPU inference dependencies or select the baseline."
         )
     if not transformer_downloaded and not model_id:
         st.info("Set HF_MODEL_ID in Streamlit Secrets to load the trained DistilBERT from Hugging Face.")
@@ -96,15 +89,12 @@ def main():
             model_id,
             hf_token,
             get_setting("HF_MODEL_REVISION"),
-            get_setting("HF_INFERENCE_ENDPOINT_URL"),
         )
     except (FileNotFoundError, ImportError, OSError, ValueError, RuntimeError) as exc:
         st.error(f"Could not load a classifier: {exc}")
         st.stop()
 
     st.caption(f"Intent classifier: {model_name} | BANKING77, 77 intents")
-    if model_choice == "DistilBERT (HF Inference)":
-        st.caption("The question is sent to Hugging Face for intent classification.")
 
     with st.sidebar:
         st.subheader("Demo configuration")
@@ -135,7 +125,7 @@ def main():
             "Use NVIDIA function calling for synthetic lookups",
             value=False,
             disabled=not use_llm,
-            help="Optional: requires an NVIDIA model that supports tool calling. Otherwise, local routing is used.",
+            help="Requires a synthetic reference such as TX-CARD-001. The selected NVIDIA model must support tool calling.",
         )
 
     question = st.text_area(
@@ -148,6 +138,8 @@ def main():
         placeholder="TX-CARD-001, TX-TRF-001 or CARD-001",
         help="Read-only SQLite lookup for three supported workflows. You can also include the demo ID in the question.",
     )
+    if llm_select_tool:
+        st.caption("To trigger NVIDIA tool calling, enter a demo reference or include it in the question (for example, TX-CARD-001).")
     if not st.button("Get support", type="primary"):
         return
 
@@ -177,6 +169,10 @@ def main():
     st.write(result.answer)
     if result.status != "answered":
         st.info(f"Fallback reason: {result.status}")
+    if result.grounding_issues:
+        st.caption("NVIDIA generation details: " + "; ".join(result.grounding_issues))
+    if llm_select_tool and result.tool_result is None:
+        st.info("No synthetic lookup was performed. Add a matching demo reference to trigger NVIDIA tool calling.")
 
     if result.tool_result:
         st.subheader("Read-only demo tool call")

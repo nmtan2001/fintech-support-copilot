@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 
-from fintech_support.copilot import DEFAULT_HF_MODEL_ID, IntentClassifier, SupportCopilot, ToolSelectionError
+from fintech_support.copilot import IntentClassifier, SupportCopilot, ToolSelectionError
 from fintech_support.demo_tools import DemoBankingTools, initialize_demo_database
 from fintech_support.evaluation import score, write_json
 from fintech_support.grounding import assess_answer
@@ -197,9 +197,7 @@ def evaluate_cases(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", choices=["distilbert", "baseline", "hf"], default="distilbert")
-    parser.add_argument("--hf-model-id", default=os.environ.get("HF_MODEL_ID", DEFAULT_HF_MODEL_ID))
-    parser.add_argument("--hf-endpoint-url", default=os.environ.get("HF_INFERENCE_ENDPOINT_URL"))
+    parser.add_argument("--model", choices=["distilbert", "baseline"], default="distilbert")
     parser.add_argument(
         "--cases", type=Path, default=ROOT / "data/evaluation/copilot_smoke_cases.json"
     )
@@ -219,19 +217,11 @@ def main() -> None:
     if args.model == "distilbert" and not (ROOT / "outputs/distilbert/model/config.json").is_file():
         parser.error("DistilBERT artifacts are missing; use --model baseline explicitly")
 
-    if args.model == "hf":
-        try:
-            classifier, name = IntentClassifier.from_huggingface(
-                model_id=args.hf_model_id, endpoint_url=args.hf_endpoint_url,
-            )
-        except ValueError as exc:
-            parser.error(str(exc))
-    else:
-        classifier, name = IntentClassifier.from_artifacts(
-            transformer_dir=ROOT / "outputs/distilbert/model",
-            baseline_path=ROOT / "outputs/baseline/model.joblib",
-            prefer_transformer=args.model == "distilbert",
-        )
+    classifier, name = IntentClassifier.from_artifacts(
+        transformer_dir=ROOT / "outputs/distilbert/model",
+        baseline_path=ROOT / "outputs/baseline/model.joblib",
+        prefer_transformer=args.model == "distilbert",
+    )
     cases = json.loads(args.cases.read_text(encoding="utf-8"))
     database_path = ROOT / "outputs/demo/demo.sqlite"
     initialize_demo_database(database_path, ROOT / "data/transactions/demo_records.json")
@@ -249,8 +239,6 @@ def main() -> None:
     )
     result["classifier"] = name
     result["classifier_backend"] = args.model
-    if args.model == "hf":
-        result["hf_model_id"] = args.hf_model_id
     result["min_confidence"] = args.min_confidence
     result["evaluation_mode"] = "live_nvidia" if args.llm_model else "deterministic"
     result["llm"] = args.llm_model or "disabled; deterministic FAQ-grounded responses"

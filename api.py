@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from fintech_support.copilot import DEFAULT_HF_MODEL_ID, IntentClassifier, SupportCopilot
+from fintech_support.copilot import IntentClassifier, SupportCopilot
 from fintech_support.demo_tools import DemoBankingTools, initialize_demo_database
 from fintech_support.retrieval import FAQRetriever, load_faqs
 
@@ -28,25 +28,16 @@ class SupportRequest(BaseModel):
 
 @lru_cache(maxsize=1)
 def get_copilot() -> SupportCopilot:
-    backend = os.environ.get("INTENT_BACKEND", "local")
-    if backend not in {"local", "hf"}:
-        raise ValueError("INTENT_BACKEND must be local or hf")
     model_dir = ROOT / "outputs/distilbert/model"
     model_available = importlib.util.find_spec("transformers") and importlib.util.find_spec("torch")
-    if backend == "hf":
-        classifier, _ = IntentClassifier.from_huggingface(
-            model_id=os.environ.get("HF_MODEL_ID", DEFAULT_HF_MODEL_ID),
-            endpoint_url=os.environ.get("HF_INFERENCE_ENDPOINT_URL"),
-        )
-    else:
-        classifier, _ = IntentClassifier.from_artifacts(
-            transformer_dir=model_dir,
-            baseline_path=ROOT / "outputs/baseline/model.joblib",
-            prefer_transformer=bool(model_available),
-            model_id=os.environ.get("HF_MODEL_ID"),
-            token=os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN"),
-            revision=os.environ.get("HF_MODEL_REVISION"),
-        )
+    classifier, _ = IntentClassifier.from_artifacts(
+        transformer_dir=model_dir,
+        baseline_path=ROOT / "outputs/baseline/model.joblib",
+        prefer_transformer=bool(model_available),
+        model_id=os.environ.get("HF_MODEL_ID"),
+        token=os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN"),
+        revision=os.environ.get("HF_MODEL_REVISION"),
+    )
     database_path = ROOT / "outputs/demo/demo.sqlite"
     initialize_demo_database(database_path, ROOT / "data/transactions/demo_records.json")
     return SupportCopilot(

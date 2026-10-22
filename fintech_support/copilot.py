@@ -1,14 +1,12 @@
 """Route intent classification to a small, explicitly synthetic FAQ corpus."""
 
 import json
-import math
 import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-from urllib.parse import quote, urlsplit
 
 from fintech_support.demo_tools import (
     SUPPORTED_INTENTS, DemoBankingTools, ToolResult, extract_reference,
@@ -31,15 +29,6 @@ class IntentClassifier:
         self.model = model
         self.tokenizer = tokenizer
         self.device = device
-
-    @classmethod
-    def from_huggingface(
-        cls, *, model_id: str = DEFAULT_HF_MODEL_ID, token: str | None = None,
-        endpoint_url: str | None = None,
-    ):
-        return HuggingFaceIntentClassifier(
-            model_id=model_id, token=token, endpoint_url=endpoint_url,
-        ), "DistilBERT (HF Inference)"
 
     @classmethod
     def from_artifacts(
@@ -116,83 +105,6 @@ class IntentClassifier:
         return results
 
 
-class HuggingFaceIntentClassifier:
-    """Call hosted text classification without loading local model weights."""
-
-    def __init__(
-        self, *, model_id: str = DEFAULT_HF_MODEL_ID, token: str | None = None,
-        endpoint_url: str | None = None,
-    ):
-        self._token = token or os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
-        if not self._token or not self._token.strip():
-            raise ValueError("Set HF_TOKEN or HUGGINGFACE_HUB_TOKEN for Hugging Face inference")
-        if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", model_id):
-            raise ValueError("HF_MODEL_ID must be a namespace/model repository ID")
-        self.model_id = model_id
-        if endpoint_url:
-            endpoint = urlsplit(endpoint_url)
-            if (endpoint.scheme != "https" or not endpoint.hostname or
-                    not endpoint.hostname.endswith(".endpoints.huggingface.cloud") or
-                    endpoint.username is not None or endpoint.password is not None or
-                    endpoint.query or endpoint.fragment):
-                raise ValueError("Use an HTTPS Hugging Face inference endpoint URL")
-        self.url = endpoint_url or (
-            "https://router.huggingface.co/hf-inference/models/" + quote(model_id, safe="/")
-        )
-
-    def predict(self, question: str) -> Prediction:
-        if not question.strip() or len(question) > 2000:
-            raise ValueError("Customer question must contain 1 to 2000 characters")
-        request = Request(
-            self.url,
-            data=json.dumps({
-                "inputs": question, "parameters": {"top_k": 1, "function_to_apply": "softmax"},
-            }).encode("utf-8"),
-            headers={"Authorization": f"Bearer {self._token}", "Content-Type": "application/json",
-                     "Accept": "application/json"},
-            method="POST",
-        )
-        try:
-            with urlopen(request, timeout=30) as response:
-                body = response.read()
-        except HTTPError as exc:
-            reason = {
-                401: "Hugging Face rejected the token",
-                402: "Hugging Face reported a quota or billing issue",
-                403: "Hugging Face token lacks permission for this model or inference service",
-                404: "Model not deployed or accessible through HF Inference; configure HF_INFERENCE_ENDPOINT_URL",
-                429: "Hugging Face inference rate limit reached",
-                503: "Hugging Face inference is unavailable; the endpoint may be loading",
-            }.get(exc.code, f"Hugging Face inference returned HTTP {exc.code}")
-            raise RuntimeError(reason) from None
-        except (URLError, TimeoutError, OSError):
-            raise RuntimeError("Could not reach Hugging Face inference; check network and DNS") from None
-        try:
-            rows = json.loads(body)
-            if isinstance(rows, list) and len(rows) == 1 and isinstance(rows[0], list):
-                rows = rows[0]
-            if not isinstance(rows, list) or not rows:
-                raise ValueError("Expected classification results")
-            predictions = []
-            for row in rows:
-                label, confidence = row["label"], row["score"]
-                if (not isinstance(label, str) or not re.fullmatch(r"[a-z][a-z0-9_]*\??", label) or
-                        type(confidence) not in (int, float) or not math.isfinite(confidence) or
-                        not 0 <= confidence <= 1):
-                    raise ValueError("Invalid intent or confidence")
-                predictions.append(Prediction(label, float(confidence)))
-        except (ValueError, KeyError, TypeError, UnicodeDecodeError):
-            raise RuntimeError(
-                "Hugging Face returned an invalid text classification response; check the model id2label mapping"
-            ) from None
-        return max(predictions, key=lambda prediction: prediction.confidence)
-
-    def predict_many(self, questions: list[str], *, batch_size: int = 32) -> list[Prediction]:
-        if batch_size < 1:
-            raise ValueError("batch_size must be positive")
-        return [self.predict(question) for question in questions]
-
-
 @dataclass(frozen=True)
 class SupportResult:
     intent: str
@@ -217,6 +129,16 @@ class ToolSelectionError(RuntimeError):
         super().__init__(message)
 
 
+class EmptyCompletionError(RuntimeError):
+    pass
+
+
+def _nvidia_generation_options(model: str, *, tool_call: bool = False) -> dict:
+    if model in {"openai/gpt-oss-20b", "openai/gpt-oss-120b"}:
+        return {"reasoning_effort": "low", "max_tokens": 1536 if tool_call else 2048}
+    return {"max_tokens": 180 if tool_call else 240}
+
+
 def _request_nvidia_message(model: str, api_key: str, payload: dict) -> dict:
     payload = json.dumps({"model": model, **payload}).encode("utf-8")
     request = Request(
@@ -230,7 +152,8 @@ def _request_nvidia_message(model: str, api_key: str, payload: dict) -> dict:
         method="POST",
     )
     try:
-        with urlopen(request, timeout=20.0) as response:
+        timeout = 60.0 if model in {"openai/gpt-oss-20b", "openai/gpt-oss-120b"} else 20.0
+        with urlopen(request, timeout=timeout) as response:
             body = response.read()
     except HTTPError as exc:
         reasons = {
@@ -255,13 +178,21 @@ def _request_nvidia_message(model: str, api_key: str, payload: dict) -> dict:
 
 
 def _request_nvidia_completion(model: str, api_key: str, messages: list[dict[str, str]]) -> str:
-    message = _request_nvidia_message(
-        model, api_key,
-        {"messages": messages, "temperature": 0, "max_tokens": 240},
-    )
+    options = _nvidia_generation_options(model)
+    message = _request_nvidia_message(model, api_key, {
+        "messages": messages, "temperature": 0, **options,
+    })
     answer = message.get("content")
+    if (not isinstance(answer, str) or not answer.strip()) and "reasoning_effort" in options:
+        message = _request_nvidia_message(model, api_key, {
+            "messages": messages, "temperature": 0,
+            **options, "max_tokens": 4096,
+        })
+        answer = message.get("content")
     if not isinstance(answer, str) or not answer.strip():
-        raise RuntimeError("NVIDIA returned an empty answer")
+        raise EmptyCompletionError(
+            "NVIDIA returned no final answer; the model may have used its output budget for reasoning"
+        )
     return answer.strip()
 
 
@@ -290,7 +221,7 @@ def _select_nvidia_tool(model: str, api_key: str, intent: str, reference: str) -
                 },
             }} for name, description in tool_definitions],
             "tool_choice": "required", "parallel_tool_calls": False,
-            "temperature": 0, "max_tokens": 180,
+            "temperature": 0, **_nvidia_generation_options(model, tool_call=True),
         },
     )
     calls = message.get("tool_calls")
@@ -331,7 +262,9 @@ def grounded_answer(
         raise ValueError("Set NVIDIA_MODEL to a model enabled for this API key")
 
     context = "\n".join(
-        f"[{hit.faq.id}] {hit.faq.title}: {hit.faq.content}" for hit in hits
+        f"[{hit.faq.id}] {sentence}"
+        for hit in hits
+        for sentence in re.split(r"(?<=[.!?])\s+", hit.faq.content)
     )
     answer = _request_nvidia_completion(
         llm_model.strip(),
@@ -344,7 +277,8 @@ def grounded_answer(
                     "Answer using only the FAQ evidence provided in the user input. "
                     "Never claim to access real customer accounts, live transactions, or real banking policies. "
                     "The application displays verified lookup facts separately. "
-                    "Return only complete sentences copied exactly from the FAQ content. "
+                    "Choose up to three complete sentences from the evidence lines. "
+                    "Return only those sentences copied exactly from the FAQ content. "
                     "Put each extract on its own line followed by its supporting FAQ ID in brackets. "
                     "Do not rewrite, shorten, or add words to an extract. "
                     "Do not generate transaction statuses, reasons, amounts, or arrival times. "
@@ -453,6 +387,11 @@ class SupportCopilot:
             grounding_issues = exc.assessment.issues
             generated_answer = exc.answer
             status = "grounding_fallback"
+            answer = grounded_answer(question, hits)
+        except EmptyCompletionError as exc:
+            generation_status = "unavailable"
+            grounding_issues = (str(exc),)
+            status = "generation_fallback"
             answer = grounded_answer(question, hits)
         if tool_result is not None:
             answer = f"{tool_result.render()}\n\n{answer}"

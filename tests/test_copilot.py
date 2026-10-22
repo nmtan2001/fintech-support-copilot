@@ -109,6 +109,62 @@ def test_nvidia_chat_api_and_grounded_citation(monkeypatch):
     assert captured["payload"]["temperature"] == 0
 
 
+def test_gpt_oss_low_reasoning_budget_and_retry(monkeypatch):
+    from fintech_support.copilot import _request_nvidia_completion
+
+    payloads = []
+
+    def completion(model, api_key, payload):
+        payloads.append(payload)
+        return {"reasoning_content": "private reasoning", "content": None} if len(payloads) == 1 else {
+            "content": "Verified demo response."
+        }
+
+    monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", completion)
+    assert _request_nvidia_completion("openai/gpt-oss-20b", "test", [
+        {"role": "user", "content": "support question"}
+    ]) == "Verified demo response."
+    assert [payload["max_tokens"] for payload in payloads] == [2048, 4096]
+    assert all(payload["reasoning_effort"] == "low" for payload in payloads)
+
+
+def test_empty_gpt_oss_completion_uses_grounded_fallback(monkeypatch, tmp_path):
+    copilot = make_tool_copilot(tmp_path)
+    calls = []
+
+    def empty_completion(model, api_key, payload):
+        calls.append(payload)
+        return {"content": None, "reasoning_content": "thinking"}
+
+    monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", empty_completion)
+    result = copilot.respond(
+        "My card payment was declined", llm_model="openai/gpt-oss-20b", llm_api_key="test",
+    )
+    assert result.status == "generation_fallback"
+    assert result.generation_status == "unavailable"
+    assert "[demo-card-" in result.answer
+    assert "no final answer" in result.grounding_issues[0]
+    assert len(calls) == 2
+
+
+def test_function_call_requires_demo_reference_even_if_checkbox_enabled(monkeypatch, tmp_path):
+    copilot = make_tool_copilot(tmp_path)
+
+    def valid_grounded_answer(*args):
+        return "In the demo, ask the customer to verify their available balance and card limits in the app. [demo-card-02]"
+
+    monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", valid_grounded_answer)
+    monkeypatch.setattr("fintech_support.copilot._select_nvidia_tool", lambda *args:
+                        pytest.fail("No synthetic ID was provided for a lookup"))
+    result = copilot.respond(
+        "My card payment was declined", llm_model="openai/gpt-oss-20b",
+        llm_api_key="test", llm_select_tool=True,
+    )
+    assert result.tool_result is None
+    assert result.tool_routing is None
+    assert result.generation_status == "accepted"
+
+
 def make_tool_copilot(tmp_path, intent="declined_card_payment"):
     db = tmp_path / "synthetic.sqlite"
     initialize_demo_database(db, ROOT / "data/transactions/demo_records.json")
@@ -148,6 +204,28 @@ def test_nvidia_tool_call_uses_verified_synthetic_record(monkeypatch, tmp_path):
     ]
     assert "reason_code=CARD_FROZEN" in requests[1]["messages"][1]["content"]
     assert len(requests) == 2
+
+
+def test_gpt_oss_tool_selection_uses_reasoning_budget(monkeypatch, tmp_path):
+    copilot = make_tool_copilot(tmp_path)
+    payloads = []
+
+    def completion(model, api_key, payload):
+        payloads.append(payload)
+        if "tools" in payload:
+            return {"tool_calls": [{"function": {
+                "name": "lookup_demo_transaction", "arguments": '{"reference":"TX-CARD-001"}',
+            }}]}
+        return {"content": "If it is frozen, review the in-app unfreeze option. [demo-card-01]"}
+
+    monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", completion)
+    result = copilot.respond(
+        "Why was TX-CARD-001 declined?", llm_model="openai/gpt-oss-20b",
+        llm_api_key="test", llm_select_tool=True,
+    )
+    assert result.tool_routing == "nvidia_function_call"
+    assert payloads[0]["max_tokens"] == 1536
+    assert payloads[0]["reasoning_effort"] == "low"
 
 
 @pytest.mark.parametrize("tool,reference", [
