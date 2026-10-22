@@ -1,0 +1,65 @@
+[
+  {
+    "id": "demo-card-01",
+    "title": "Declined card payment: check card status",
+    "intents": ["declined_card_payment"],
+    "content": "For a declined card payment in this demo, open the card section and check whether the card is frozen or inactive. If it is frozen, review the in-app unfreeze option. Never share a PIN or card security code with support. This knowledge base cannot see the customer's actual card status.",
+    "source": "Synthetic demo policy: demo-card-01"
+  },
+  {
+    "id": "demo-card-02",
+    "title": "Declined card payment: balance and merchant checks",
+    "intents": ["declined_card_payment"],
+    "content": "A card payment can be declined for several reasons, including insufficient available balance, spending limits, or a merchant restriction. In the demo, ask the customer to verify their available balance and card limits in the app. Do not guess which reason applies without verified transaction data.",
+    "source": "Synthetic demo policy: demo-card-02"
+  },
+  {
+    "id": "demo-card-03",
+    "title": "Declined card payment: next steps",
+    "intents": ["declined_card_payment"],
+    "content": "If a card payment still fails after checking the card status, balance and limits, the demo recommends contacting human support with the approximate time and merchant name. Do not ask for the full card number, PIN or CVV.",
+    "source": "Synthetic demo policy: demo-card-03"
+  },
+  {
+    "id": "demo-transfer-01",
+    "title": "Transfer pending: check tracking status",
+    "intents": ["pending_transfer", "transfer_not_received_by_recipient"],
+    "content": "For a transfer that is pending or not yet received, the demo recommends checking the transfer status and recipient details in the app. A pending status means completion has not been confirmed. The support copilot has no access to live transfers and cannot give an exact arrival time.",
+    "source": "Synthetic demo policy: demo-transfer-01"
+  },
+  {
+    "id": "demo-transfer-02",
+    "title": "Transfer complete but recipient has no funds",
+    "intents": ["transfer_not_received_by_recipient"],
+    "content": "If the app shows a completed transfer but the recipient says funds have not arrived, the demo recommends checking the recipient account details and asking the receiving institution to trace the payment. Contact human support with a transfer reference if further help is needed. Do not promise a refund or a delivery time.",
+    "source": "Synthetic demo policy: demo-transfer-02"
+  },
+  {
+    "id": "demo-transfer-03",
+    "title": "Delayed transfer: escalation",
+    "intents": ["pending_transfer", "transfer_not_received_by_recipient"],
+    "content": "For an unexpectedly delayed transfer, the demo recommends opening the transfer details and contacting human support if the listed expected arrival window has passed. Only the actual payment provider can investigate the transaction. No banking tool is connected to this prototype.",
+    "source": "Synthetic demo policy: demo-transfer-03"
+  },
+  {
+    "id": "demo-lost-01",
+    "title": "Lost or stolen card: secure the card",
+    "intents": ["lost_or_stolen_card"],
+    "content": "If a card is lost or stolen, the demo recommends freezing it immediately using the card controls in the real provider's app, or contacting the provider's official support channel. This prototype cannot freeze cards or change account settings. Do not provide account credentials in chat.",
+    "source": "Synthetic demo policy: demo-lost-01"
+  },
+  {
+    "id": "demo-lost-02",
+    "title": "Lost or stolen card: replacement",
+    "intents": ["lost_or_stolen_card"],
+    "content": "After securing a lost or stolen card, the demo recommends reviewing the provider's official replacement card procedure. Replacement eligibility and delivery fees depend on the actual provider; this demo does not define those terms.",
+    "source": "Synthetic demo policy: demo-lost-02"
+  },
+  {
+    "id": "demo-lost-03",
+    "title": "Lost or stolen card: suspicious transactions",
+    "intents": ["lost_or_stolen_card"],
+    "content": "If a lost card may have been used without permission, the demo recommends contacting the real provider immediately through its official app or verified support channel and reporting suspicious transactions. This prototype cannot verify charges or submit disputes.",
+    "source": "Synthetic demo policy: demo-lost-03"
+  }
+]

@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+data/raw/
+outputs/
+artifacts/
+.krun/
+.env
+.streamlit/secrets.toml
+*.pyc
+krun_project/
+fintech-support-copilot-*.log

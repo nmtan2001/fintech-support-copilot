@@ -1,0 +1,6 @@
+# Kaggle provides a CUDA-enabled PyTorch build; keep it installed.
+transformers==4.57.1
+datasets>=3.6,<5
+accelerate>=1,<2
+scikit-learn>=1.3,<2
+pandas>=2,<3
