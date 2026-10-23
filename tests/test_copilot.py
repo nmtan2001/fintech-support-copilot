@@ -5,7 +5,10 @@ from urllib.error import HTTPError
 
 import pytest
 
-from fintech_support.copilot import DEFAULT_GEMINI_MODEL, Prediction, SupportCopilot, IntentClassifier, grounded_answer
+from fintech_support.copilot import (
+    DEFAULT_GEMINI_MODEL, GEMINI_REQUEST_TIMEOUT_SECONDS, Prediction, SupportCopilot,
+    IntentClassifier, grounded_answer,
+)
 from fintech_support.demo_tools import DemoBankingTools, initialize_demo_database
 from fintech_support.retrieval import FAQRetriever, load_faqs
 
@@ -105,7 +108,7 @@ def test_gemini_chat_api_and_grounded_citation(monkeypatch):
     assert "[demo-lost-01]" in answer
     assert captured["url"] == f"https://generativelanguage.googleapis.com/v1beta/models/{DEFAULT_GEMINI_MODEL}:generateContent"
     assert captured["api_key"] == "test-key"
-    assert captured["timeout"] == 30.0
+    assert captured["timeout"] == GEMINI_REQUEST_TIMEOUT_SECONDS
     assert "temperature" not in captured["payload"]["generationConfig"]
     assert captured["payload"]["generationConfig"]["thinkingConfig"]["thinkingLevel"] == "low"
     assert "systemInstruction" in captured["payload"]
@@ -131,6 +134,38 @@ def test_gemini_http_errors_hide_credentials(monkeypatch):
     with pytest.raises(RuntimeError, match="rate limit or quota") as exc:
         _request_gemini_message(DEFAULT_GEMINI_MODEL, "secret-key", {})
     assert "secret-key" not in str(exc.value)
+
+
+def test_gemini_retries_transient_503_with_backoff(monkeypatch):
+    from fintech_support.copilot import _request_gemini_message
+
+    attempts = []
+    delays = []
+
+    def flaky_request(request, timeout):
+        attempts.append(timeout)
+        if len(attempts) < 3:
+            raise HTTPError(request.full_url, 503, "temporarily unavailable", {}, None)
+        return BytesIO(json.dumps({"candidates": [{"content": {"parts": [{"text": "OK"}]}}]}).encode())
+
+    monkeypatch.setattr("fintech_support.copilot.urlopen", flaky_request)
+    monkeypatch.setattr("fintech_support.copilot.time.sleep", delays.append)
+    result = _request_gemini_message(DEFAULT_GEMINI_MODEL, "test-key", {})
+    assert result["parts"][0]["text"] == "OK"
+    assert len(attempts) == 3
+    assert len(delays) == 2
+    assert 1 <= delays[0] < 1.25
+    assert 2 <= delays[1] < 2.25
+
+
+def test_gemini_503_after_retries_has_actionable_error(monkeypatch):
+    from fintech_support.copilot import _request_gemini_message
+
+    monkeypatch.setattr("fintech_support.copilot.urlopen", lambda request, timeout:
+                        (_ for _ in ()).throw(HTTPError(request.full_url, 503, "unavailable", {}, None)))
+    monkeypatch.setattr("fintech_support.copilot.time.sleep", lambda _: None)
+    with pytest.raises(RuntimeError, match="temporarily overloaded.*after retries"):
+        _request_gemini_message(DEFAULT_GEMINI_MODEL, "test-key", {})
 
 
 def test_gemini_empty_candidates_use_grounded_fallback(monkeypatch, tmp_path):
@@ -234,7 +269,7 @@ def test_gemini_tool_call_uses_verified_synthetic_record(monkeypatch, tmp_path):
     assert "reason_code=CARD_FROZEN" in response.answer
     assert "[demo-card-01]" in response.answer
     assert [row["name"] for row in requests[0]["tools"][0]["functionDeclarations"]] == [
-        "lookup_demo_card", "lookup_demo_transaction"
+        "lookup_demo_transaction"
     ]
     assert requests[0]["toolConfig"]["functionCallingConfig"]["mode"] == "ANY"
     assert "reason_code=CARD_FROZEN" in requests[1]["contents"][0]["parts"][0]["text"]
@@ -261,6 +296,25 @@ def test_gemini_tool_selection_uses_output_budget(monkeypatch, tmp_path):
     assert result.tool_routing == "gemini_function_call"
     assert payloads[0]["generationConfig"]["maxOutputTokens"] == 1024
     assert payloads[0]["generationConfig"]["thinkingConfig"]["thinkingLevel"] == "low"
+
+
+def test_gemini_tool_call_normalizes_reference_format(monkeypatch, tmp_path):
+    copilot = make_tool_copilot(tmp_path)
+
+    def completion(model, api_key, payload):
+        if "tools" in payload:
+            return {"parts": [{"functionCall": {
+                "name": "lookup_demo_transaction", "args": {"reference": " tx-card-001 "},
+            }}]}
+        return {"parts": [{"text": "If it is frozen, review the in-app unfreeze option. [demo-card-01]"}]}
+
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_message", completion)
+    result = copilot.respond(
+        "Why did my payment fail?", record_reference="TX-CARD-001",
+        llm_model="demo-model", llm_api_key="fake-key", llm_select_tool=True,
+    )
+    assert result.tool_result.reference == "TX-CARD-001"
+    assert result.tool_routing == "gemini_function_call"
 
 
 @pytest.mark.parametrize("tool,reference", [

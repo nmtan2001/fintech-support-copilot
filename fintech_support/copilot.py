@@ -2,8 +2,10 @@
 
 import json
 import os
+import random
 import re
 import socket
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -18,6 +20,8 @@ from fintech_support.grounding import FALLBACK, GroundingError, assess_answer
 
 DEFAULT_HF_MODEL_ID = "nmtan2001/fintech-support-distilbert"
 DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+GEMINI_REQUEST_TIMEOUT_SECONDS = 90
+GEMINI_503_MAX_RETRIES = 2
 
 
 @dataclass(frozen=True)
@@ -148,32 +152,40 @@ def _request_gemini_message(model: str, api_key: str, payload: dict) -> dict:
         },
         method="POST",
     )
-    try:
-        with urlopen(request, timeout=30.0) as response:
-            body = response.read()
-    except HTTPError as exc:
-        reasons = {
-            400: "Gemini rejected the request or model configuration",
-            401: "Gemini rejected the API key",
-            403: "Gemini denied access to the API or model",
-            404: "Gemini could not find the configured model",
-            429: "Gemini rate limit or quota reached",
-        }
-        reason = reasons.get(exc.code, f"Gemini returned HTTP {exc.code}")
-        raise RuntimeError(reason) from exc
-    except TimeoutError as exc:
-        raise RuntimeError("Gemini API connection timed out after 30 seconds") from exc
-    except URLError as exc:
-        reason = exc.reason
-        if isinstance(reason, TimeoutError):
-            detail = "connection timed out"
-        elif isinstance(reason, socket.gaierror):
-            detail = "DNS lookup failed for generativelanguage.googleapis.com"
-        elif isinstance(reason, OSError):
-            detail = f"{type(reason).__name__} (errno={reason.errno})"
-        else:
-            detail = type(reason).__name__
-        raise RuntimeError(f"Could not reach the Gemini API: {detail}") from exc
+    for attempt in range(GEMINI_503_MAX_RETRIES + 1):
+        try:
+            with urlopen(request, timeout=GEMINI_REQUEST_TIMEOUT_SECONDS) as response:
+                body = response.read()
+            break
+        except HTTPError as exc:
+            if exc.code == 503 and attempt < GEMINI_503_MAX_RETRIES:
+                time.sleep((2 ** attempt) + random.uniform(0, 0.25))
+                continue
+            reasons = {
+                400: "Gemini rejected the request or model configuration",
+                401: "Gemini rejected the API key",
+                403: "Gemini denied access to the API or model",
+                404: "Gemini could not find the configured model",
+                429: "Gemini rate limit or quota reached",
+                503: "Gemini is temporarily overloaded (HTTP 503) after retries",
+            }
+            reason = reasons.get(exc.code, f"Gemini returned HTTP {exc.code}")
+            raise RuntimeError(reason) from exc
+        except TimeoutError as exc:
+            raise RuntimeError(
+                f"Gemini API request timed out after {GEMINI_REQUEST_TIMEOUT_SECONDS} seconds"
+            ) from exc
+        except URLError as exc:
+            reason = exc.reason
+            if isinstance(reason, TimeoutError):
+                detail = "connection timed out"
+            elif isinstance(reason, socket.gaierror):
+                detail = "DNS lookup failed for generativelanguage.googleapis.com"
+            elif isinstance(reason, OSError):
+                detail = f"{type(reason).__name__} (errno={reason.errno})"
+            else:
+                detail = type(reason).__name__
+            raise RuntimeError(f"Could not reach the Gemini API: {detail}") from exc
 
     try:
         result = json.loads(body)
@@ -211,6 +223,7 @@ def _select_gemini_tool(model: str, api_key: str, intent: str, reference: str) -
         ("lookup_demo_card", "Read a synthetic demo card status"),
         ("lookup_demo_transaction", "Read a synthetic demo payment or transfer status"),
     ]
+    description = dict(tool_definitions)[expected]
     message = _request_gemini_message(
         model, api_key,
         {
@@ -220,13 +233,13 @@ def _select_gemini_tool(model: str, api_key: str, intent: str, reference: str) -
                 )}]},
             "contents": [{"role": "user", "parts": [{"text": json.dumps({"intent": intent, "reference": reference})}]}],
             "tools": [{"functionDeclarations": [{
-                "name": name,
+                "name": expected,
                 "description": description,
                 "parameters": {
                     "type": "OBJECT", "properties": {"reference": {"type": "STRING"}},
                     "required": ["reference"],
                 },
-            } for name, description in tool_definitions]}],
+            }]}],
             "toolConfig": {"functionCallingConfig": {"mode": "ANY"}},
             "generationConfig": {
                 "maxOutputTokens": 1024,
@@ -243,9 +256,10 @@ def _select_gemini_tool(model: str, api_key: str, intent: str, reference: str) -
     except (KeyError, TypeError) as exc:
         raise ToolSelectionError("Gemini returned malformed tool arguments") from exc
     arguments = calls[0].get("args")
-    if not isinstance(arguments, dict):
+    if (not isinstance(arguments, dict) or set(arguments) != {"reference"} or
+            not isinstance(arguments.get("reference"), str)):
         raise ToolSelectionError("Gemini returned malformed tool arguments", name=function_name)
-    if function_name != expected or not isinstance(arguments, dict) or arguments != {"reference": reference}:
+    if function_name != expected or arguments["reference"].strip().upper() != reference.strip().upper():
         raise ToolSelectionError(
             "Gemini proposed a tool or reference outside the authorized demo lookup",
             name=function_name, arguments=arguments,
