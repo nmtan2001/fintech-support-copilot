@@ -6,7 +6,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from fintech_support.copilot import DEFAULT_HF_MODEL_ID, IntentClassifier, SupportCopilot
+from fintech_support.copilot import DEFAULT_GEMINI_MODEL, DEFAULT_HF_MODEL_ID, IntentClassifier, SupportCopilot
 from fintech_support.demo_tools import DemoBankingTools, initialize_demo_database
 from fintech_support.retrieval import FAQRetriever, load_faqs
 
@@ -104,13 +104,13 @@ def main():
         retrieval_backend = st.selectbox("FAQ retrieval", retrieval_backends)
         min_confidence = st.slider("Minimum classifier confidence (demo threshold)", 0.0, 1.0, 0.0, 0.05)
         st.caption("Classifier probabilities are not calibrated. Set 0 to disable threshold-based abstention.")
-        gemini_api_key = get_setting("GEMINI_API_KEY")
+        gemini_api_key = get_setting("GOOGLE_API_KEY")
         has_key = bool(gemini_api_key)
         use_llm = st.checkbox("Generate answer with an LLM", value=has_key, disabled=not has_key)
         if use_llm:
             llm_model = st.text_input(
                 "Gemini model ID",
-                value=get_setting("GEMINI_MODEL", "gemini-3.5-flash-lite"),
+                value=get_setting("GEMINI_MODEL", DEFAULT_GEMINI_MODEL),
                 placeholder="Enter a model enabled for your Gemini API key",
             )
             llm_api_key = gemini_api_key
@@ -120,7 +120,7 @@ def main():
         if use_llm:
             st.caption("The question and retrieved demo policies are sent to Gemini.")
         else:
-            st.caption("Set GEMINI_API_KEY in Streamlit Secrets to enable LLM generation.")
+            st.caption("Set GOOGLE_API_KEY in Streamlit Secrets to enable LLM generation.")
         llm_select_tool = st.checkbox(
             "Use Gemini function calling for synthetic lookups",
             value=False,

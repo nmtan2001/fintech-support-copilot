@@ -5,7 +5,7 @@ from urllib.error import HTTPError
 
 import pytest
 
-from fintech_support.copilot import Prediction, SupportCopilot, IntentClassifier, grounded_answer
+from fintech_support.copilot import DEFAULT_GEMINI_MODEL, Prediction, SupportCopilot, IntentClassifier, grounded_answer
 from fintech_support.demo_tools import DemoBankingTools, initialize_demo_database
 from fintech_support.retrieval import FAQRetriever, load_faqs
 
@@ -98,12 +98,12 @@ def test_gemini_chat_api_and_grounded_citation(monkeypatch):
     answer = grounded_answer(
         "My card was stolen",
         hits,
-        llm_model="gemini-3.5-flash-lite",
+        llm_model=DEFAULT_GEMINI_MODEL,
         llm_api_key="test-key",
     )
 
     assert "[demo-lost-01]" in answer
-    assert captured["url"] == "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"
+    assert captured["url"] == f"https://generativelanguage.googleapis.com/v1beta/models/{DEFAULT_GEMINI_MODEL}:generateContent"
     assert captured["api_key"] == "test-key"
     assert captured["timeout"] == 30.0
     assert captured["payload"]["generationConfig"]["temperature"] == 0
@@ -128,7 +128,7 @@ def test_gemini_http_errors_hide_credentials(monkeypatch):
 
     monkeypatch.setattr("fintech_support.copilot.urlopen", failed_request)
     with pytest.raises(RuntimeError, match="rate limit or quota") as exc:
-        _request_gemini_message("gemini-3.5-flash-lite", "secret-key", {})
+        _request_gemini_message(DEFAULT_GEMINI_MODEL, "secret-key", {})
     assert "secret-key" not in str(exc.value)
 
 
@@ -136,7 +136,7 @@ def test_gemini_empty_candidates_use_grounded_fallback(monkeypatch, tmp_path):
     copilot = make_tool_copilot(tmp_path)
     monkeypatch.setattr("fintech_support.copilot.urlopen", lambda *args, **kwargs:
                         BytesIO(b'{"candidates":[]}'))
-    result = copilot.respond("My card payment was declined", llm_model="gemini-3.5-flash-lite",
+    result = copilot.respond("My card payment was declined", llm_model=DEFAULT_GEMINI_MODEL,
                             llm_api_key="secret-key")
     assert result.status == "generation_fallback"
     assert "[demo-card-" in result.answer
@@ -153,7 +153,7 @@ def test_gemini_ignores_thought_parts(monkeypatch):
                           {"text": "Verified demo response."}]}
 
     monkeypatch.setattr("fintech_support.copilot._request_gemini_message", completion)
-    assert _request_gemini_completion("gemini-3.5-flash-lite", "test", [
+    assert _request_gemini_completion(DEFAULT_GEMINI_MODEL, "test", [
         {"role": "user", "content": "support question"}
     ]) == "Verified demo response."
     assert len(payloads) == 1
@@ -170,7 +170,7 @@ def test_empty_gemini_completion_uses_grounded_fallback(monkeypatch, tmp_path):
 
     monkeypatch.setattr("fintech_support.copilot._request_gemini_message", empty_completion)
     result = copilot.respond(
-        "My card payment was declined", llm_model="gemini-3.5-flash-lite", llm_api_key="test",
+        "My card payment was declined", llm_model=DEFAULT_GEMINI_MODEL, llm_api_key="test",
     )
     assert result.status == "generation_fallback"
     assert result.generation_status == "unavailable"
@@ -189,7 +189,7 @@ def test_function_call_requires_demo_reference_even_if_checkbox_enabled(monkeypa
     monkeypatch.setattr("fintech_support.copilot._select_gemini_tool", lambda *args:
                         pytest.fail("No synthetic ID was provided for a lookup"))
     result = copilot.respond(
-        "My card payment was declined", llm_model="gemini-3.5-flash-lite",
+        "My card payment was declined", llm_model=DEFAULT_GEMINI_MODEL,
         llm_api_key="test", llm_select_tool=True,
     )
     assert result.tool_result is None
@@ -253,7 +253,7 @@ def test_gemini_tool_selection_uses_output_budget(monkeypatch, tmp_path):
 
     monkeypatch.setattr("fintech_support.copilot._request_gemini_message", completion)
     result = copilot.respond(
-        "Why was TX-CARD-001 declined?", llm_model="gemini-3.5-flash-lite",
+        "Why was TX-CARD-001 declined?", llm_model=DEFAULT_GEMINI_MODEL,
         llm_api_key="test", llm_select_tool=True,
     )
     assert result.tool_routing == "gemini_function_call"

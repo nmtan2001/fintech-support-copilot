@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from fintech_support.copilot import IntentClassifier, SupportCopilot
+from fintech_support.copilot import DEFAULT_GEMINI_MODEL, IntentClassifier, SupportCopilot
 from fintech_support.demo_tools import DemoBankingTools, initialize_demo_database
 from fintech_support.retrieval import FAQRetriever, load_faqs
 
@@ -57,16 +57,16 @@ def support(payload: SupportRequest):
     if payload.llm_select_tool and not payload.use_llm:
         raise HTTPException(status_code=400, detail="Enable use_llm to select tools with Gemini")
     if (payload.use_llm or payload.llm_select_tool) and not (
-        os.environ.get("GEMINI_API_KEY")
+        os.environ.get("GOOGLE_API_KEY")
     ):
-        raise HTTPException(status_code=400, detail="Set GEMINI_API_KEY to use generation")
+        raise HTTPException(status_code=400, detail="Set GOOGLE_API_KEY to use generation")
     try:
         result = get_copilot().respond(
             payload.question,
             record_reference=payload.record_reference,
             min_confidence=payload.min_confidence,
-            llm_model=os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite") if (payload.use_llm or payload.llm_select_tool) else None,
-            llm_api_key=os.environ.get("GEMINI_API_KEY") if (payload.use_llm or payload.llm_select_tool) else None,
+            llm_model=os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL) if (payload.use_llm or payload.llm_select_tool) else None,
+            llm_api_key=os.environ.get("GOOGLE_API_KEY") if (payload.use_llm or payload.llm_select_tool) else None,
             llm_select_tool=payload.llm_select_tool,
         )
     except ValueError as exc:

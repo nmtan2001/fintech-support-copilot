@@ -230,9 +230,9 @@ def main() -> None:
         FAQRetriever(load_faqs(ROOT / "data/faq/demo_policies.json")),
         DemoBankingTools(database_path),
     )
-    api_key = os.environ.get("GEMINI_API_KEY") if args.llm_model else None
+    api_key = os.environ.get("GOOGLE_API_KEY") if args.llm_model else None
     if args.llm_model and not api_key:
-        parser.error("GEMINI_API_KEY must be set for --llm-model")
+        parser.error("GOOGLE_API_KEY must be set for --llm-model")
     result = evaluate_cases(
         copilot, cases, llm_model=args.llm_model, llm_api_key=api_key,
         llm_select_tool=args.llm_tool_calling, min_confidence=args.min_confidence,

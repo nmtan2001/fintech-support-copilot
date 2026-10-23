@@ -16,6 +16,7 @@ from fintech_support.grounding import FALLBACK, GroundingError, assess_answer
 
 
 DEFAULT_HF_MODEL_ID = "nmtan2001/fintech-support-distilbert"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
 
 @dataclass(frozen=True)
@@ -247,7 +248,7 @@ def grounded_answer(
     if not llm_model and not llm_api_key:
         return f"Demo guidance: {hits[0].faq.content} [{hits[0].faq.id}]"
     if not llm_api_key:
-        raise ValueError("GEMINI_API_KEY is required for generated answers")
+        raise ValueError("GOOGLE_API_KEY is required for generated answers")
     if not llm_model or not llm_model.strip():
         raise ValueError("Set GEMINI_MODEL to a model enabled for this API key")
 
