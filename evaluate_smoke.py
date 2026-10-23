@@ -204,8 +204,8 @@ def main() -> None:
     parser.add_argument(
         "--output", type=Path, default=ROOT / "outputs/evaluation/copilot_smoke.json"
     )
-    parser.add_argument("--llm-model", help="Optional NVIDIA model ID for an API-based evaluation run")
-    parser.add_argument("--llm-tool-calling", action="store_true", help="Let NVIDIA select the read-only demo tool")
+    parser.add_argument("--llm-model", help="Optional Gemini model ID for an API-based evaluation run")
+    parser.add_argument("--llm-tool-calling", action="store_true", help="Let Gemini select the read-only demo tool")
     parser.add_argument("--min-confidence", type=float, default=0.0)
     parser.add_argument("--strict", action="store_true", help="Exit with an error unless every case passes")
     args = parser.parse_args()
@@ -230,9 +230,9 @@ def main() -> None:
         FAQRetriever(load_faqs(ROOT / "data/faq/demo_policies.json")),
         DemoBankingTools(database_path),
     )
-    api_key = os.environ.get("NVIDIA_API_KEY") if args.llm_model else None
+    api_key = os.environ.get("GEMINI_API_KEY") if args.llm_model else None
     if args.llm_model and not api_key:
-        parser.error("NVIDIA_API_KEY must be set for --llm-model")
+        parser.error("GEMINI_API_KEY must be set for --llm-model")
     result = evaluate_cases(
         copilot, cases, llm_model=args.llm_model, llm_api_key=api_key,
         llm_select_tool=args.llm_tool_calling, min_confidence=args.min_confidence,
@@ -240,7 +240,7 @@ def main() -> None:
     result["classifier"] = name
     result["classifier_backend"] = args.model
     result["min_confidence"] = args.min_confidence
-    result["evaluation_mode"] = "live_nvidia" if args.llm_model else "deterministic"
+    result["evaluation_mode"] = "live_gemini" if args.llm_model else "deterministic"
     result["llm"] = args.llm_model or "disabled; deterministic FAQ-grounded responses"
     result["llm_tool_calling"] = args.llm_tool_calling
     write_json(args.output, result)

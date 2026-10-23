@@ -119,7 +119,7 @@ class SupportResult:
     generated_answer: str | None = None
 
 
-NVIDIA_CHAT_COMPLETIONS_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+GEMINI_GENERATE_CONTENT_URL = "https://generativelanguage.googleapis.com/v1beta/models/"
 
 
 class ToolSelectionError(RuntimeError):
@@ -133,112 +133,102 @@ class EmptyCompletionError(RuntimeError):
     pass
 
 
-def _nvidia_generation_options(model: str, *, tool_call: bool = False) -> dict:
-    if model in {"openai/gpt-oss-20b", "openai/gpt-oss-120b"}:
-        return {"reasoning_effort": "low", "max_tokens": 1536 if tool_call else 2048}
-    return {"max_tokens": 180 if tool_call else 240}
-
-
-def _request_nvidia_message(model: str, api_key: str, payload: dict) -> dict:
-    payload = json.dumps({"model": model, **payload}).encode("utf-8")
+def _request_gemini_message(model: str, api_key: str, payload: dict) -> dict:
+    if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._-]*", model):
+        raise ValueError("Invalid Gemini model ID")
     request = Request(
-        NVIDIA_CHAT_COMPLETIONS_URL,
-        data=payload,
+        f"{GEMINI_GENERATE_CONTENT_URL}{model}:generateContent",
+        data=json.dumps(payload).encode("utf-8"),
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "x-goog-api-key": api_key,
             "Content-Type": "application/json",
             "Accept": "application/json",
         },
         method="POST",
     )
     try:
-        timeout = 60.0 if model in {"openai/gpt-oss-20b", "openai/gpt-oss-120b"} else 20.0
-        with urlopen(request, timeout=timeout) as response:
+        with urlopen(request, timeout=30.0) as response:
             body = response.read()
     except HTTPError as exc:
         reasons = {
-            401: "NVIDIA rejected the API key",
-            402: "NVIDIA reported a quota or billing issue",
-            404: "NVIDIA could not find or access the configured model",
-            429: "NVIDIA rate limit reached",
+            400: "Gemini rejected the request or model configuration",
+            401: "Gemini rejected the API key",
+            403: "Gemini denied access to the API or model",
+            404: "Gemini could not find the configured model",
+            429: "Gemini rate limit or quota reached",
         }
-        reason = reasons.get(exc.code, f"NVIDIA returned HTTP {exc.code}")
+        reason = reasons.get(exc.code, f"Gemini returned HTTP {exc.code}")
         raise RuntimeError(reason) from exc
     except (TimeoutError, URLError) as exc:
-        raise RuntimeError("Could not reach the NVIDIA inference API") from exc
+        raise RuntimeError("Could not reach the Gemini API") from exc
 
     try:
         result = json.loads(body)
-        message = result["choices"][0]["message"]
+        message = result["candidates"][0]["content"]
     except (json.JSONDecodeError, KeyError, IndexError, TypeError) as exc:
-        raise RuntimeError("NVIDIA returned an invalid chat completion response") from exc
-    if not isinstance(message, dict):
-        raise RuntimeError("NVIDIA returned an invalid chat completion message")
+        raise EmptyCompletionError("Gemini returned no usable response") from exc
+    if not isinstance(message, dict) or not isinstance(message.get("parts"), list):
+        raise EmptyCompletionError("Gemini returned no usable response")
     return message
 
 
-def _request_nvidia_completion(model: str, api_key: str, messages: list[dict[str, str]]) -> str:
-    options = _nvidia_generation_options(model)
-    message = _request_nvidia_message(model, api_key, {
-        "messages": messages, "temperature": 0, **options,
+def _request_gemini_completion(model: str, api_key: str, messages: list[dict[str, str]]) -> str:
+    system = "\n".join(message["content"] for message in messages if message["role"] == "system")
+    user = "\n".join(message["content"] for message in messages if message["role"] == "user")
+    response = _request_gemini_message(model, api_key, {
+        "systemInstruction": {"parts": [{"text": system}]},
+        "contents": [{"role": "user", "parts": [{"text": user}]}],
+        "generationConfig": {"temperature": 0, "maxOutputTokens": 2048},
     })
-    answer = message.get("content")
-    if (not isinstance(answer, str) or not answer.strip()) and "reasoning_effort" in options:
-        message = _request_nvidia_message(model, api_key, {
-            "messages": messages, "temperature": 0,
-            **options, "max_tokens": 4096,
-        })
-        answer = message.get("content")
-    if not isinstance(answer, str) or not answer.strip():
-        raise EmptyCompletionError(
-            "NVIDIA returned no final answer; the model may have used its output budget for reasoning"
-        )
-    return answer.strip()
+    answer = "\n".join(
+        part["text"] for part in response["parts"]
+        if isinstance(part, dict) and isinstance(part.get("text"), str) and not part.get("thought")
+    ).strip()
+    if not answer:
+        raise EmptyCompletionError("Gemini returned no final answer")
+    return answer
 
 
-def _select_nvidia_tool(model: str, api_key: str, intent: str, reference: str) -> str:
+def _select_gemini_tool(model: str, api_key: str, intent: str, reference: str) -> str:
     expected = "lookup_demo_card" if SUPPORTED_INTENTS[intent] == "card" else "lookup_demo_transaction"
     tool_definitions = [
         ("lookup_demo_card", "Read a synthetic demo card status"),
         ("lookup_demo_transaction", "Read a synthetic demo payment or transfer status"),
     ]
-    message = _request_nvidia_message(
+    message = _request_gemini_message(
         model, api_key,
         {
-            "messages": [
-                {"role": "system", "content": (
+            "systemInstruction": {"parts": [{"text": (
                     "Choose the read-only synthetic lookup tool for the provided intent and "
                     "reference. Only the exact reference provided is authorized."
-                )},
-                {"role": "user", "content": json.dumps({"intent": intent, "reference": reference})},
-            ],
-            "tools": [{"type": "function", "function": {
+                )}]},
+            "contents": [{"role": "user", "parts": [{"text": json.dumps({"intent": intent, "reference": reference})}]}],
+            "tools": [{"functionDeclarations": [{
                 "name": name,
                 "description": description,
                 "parameters": {
-                    "type": "object", "properties": {"reference": {"type": "string"}},
-                    "required": ["reference"], "additionalProperties": False,
+                    "type": "OBJECT", "properties": {"reference": {"type": "STRING"}},
+                    "required": ["reference"],
                 },
-            }} for name, description in tool_definitions],
-            "tool_choice": "required", "parallel_tool_calls": False,
-            "temperature": 0, **_nvidia_generation_options(model, tool_call=True),
+            } for name, description in tool_definitions]}],
+            "toolConfig": {"functionCallingConfig": {"mode": "ANY"}},
+            "generationConfig": {"temperature": 0, "maxOutputTokens": 1024},
         },
     )
-    calls = message.get("tool_calls")
-    if not isinstance(calls, list) or len(calls) != 1:
-        raise ToolSelectionError("NVIDIA model did not return one valid tool call")
+    calls = [part["functionCall"] for part in message["parts"]
+             if isinstance(part, dict) and "functionCall" in part]
+    if len(calls) != 1:
+        raise ToolSelectionError("Gemini model did not return one valid tool call")
     try:
-        function = calls[0]["function"]
-        function_name = function["name"]
+        function_name = calls[0]["name"]
     except (KeyError, TypeError) as exc:
-        raise ToolSelectionError("NVIDIA returned malformed tool arguments") from exc
-    try:
-        arguments = json.loads(function["arguments"])
-    except (KeyError, TypeError, json.JSONDecodeError) as exc:
-        raise ToolSelectionError("NVIDIA returned malformed tool arguments", name=function_name) from exc
+        raise ToolSelectionError("Gemini returned malformed tool arguments") from exc
+    arguments = calls[0].get("args")
+    if not isinstance(arguments, dict):
+        raise ToolSelectionError("Gemini returned malformed tool arguments", name=function_name)
     if function_name != expected or not isinstance(arguments, dict) or arguments != {"reference": reference}:
         raise ToolSelectionError(
-            "NVIDIA proposed a tool or reference outside the authorized demo lookup",
+            "Gemini proposed a tool or reference outside the authorized demo lookup",
             name=function_name, arguments=arguments,
         )
     return function_name
@@ -257,16 +247,16 @@ def grounded_answer(
     if not llm_model and not llm_api_key:
         return f"Demo guidance: {hits[0].faq.content} [{hits[0].faq.id}]"
     if not llm_api_key:
-        raise ValueError("NVIDIA_API_KEY is required for generated answers")
+        raise ValueError("GEMINI_API_KEY is required for generated answers")
     if not llm_model or not llm_model.strip():
-        raise ValueError("Set NVIDIA_MODEL to a model enabled for this API key")
+        raise ValueError("Set GEMINI_MODEL to a model enabled for this API key")
 
     context = "\n".join(
         f"[{hit.faq.id}] {sentence}"
         for hit in hits
         for sentence in re.split(r"(?<=[.!?])\s+", hit.faq.content)
     )
-    answer = _request_nvidia_completion(
+    answer = _request_gemini_completion(
         llm_model.strip(),
         llm_api_key,
         [
@@ -331,7 +321,7 @@ class SupportCopilot:
             raise ValueError("min_confidence must be between 0 and 1")
         prediction = self.classifier.predict(question)
         if llm_select_tool and (not llm_model or not llm_api_key):
-            raise ValueError("NVIDIA model and API key are required for LLM tool selection")
+            raise ValueError("Gemini model and API key are required for LLM tool selection")
         if prediction.confidence < min_confidence:
             return SupportResult(prediction.intent, prediction.confidence, FALLBACK, (), "low_confidence")
         hits = tuple(self.retriever.search(question, intent=prediction.intent, top_k=3))
@@ -348,10 +338,10 @@ class SupportCopilot:
             reference = reference.strip().upper()
             expected_tool = self.tools.validate(prediction.intent, reference)
             if llm_select_tool:
-                selected = _select_nvidia_tool(llm_model, llm_api_key, prediction.intent, reference)
+                selected = _select_gemini_tool(llm_model, llm_api_key, prediction.intent, reference)
                 if selected != expected_tool:
-                    raise RuntimeError("NVIDIA returned the wrong tool for the classified intent")
-                tool_routing = "nvidia_function_call"
+                    raise RuntimeError("Gemini returned the wrong tool for the classified intent")
+                tool_routing = "gemini_function_call"
             else:
                 tool_routing = "intent_router"
             tool_result = self.tools.call(prediction.intent, reference)

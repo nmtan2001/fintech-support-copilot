@@ -27,14 +27,14 @@ def hits():
     "completion has not been confirmed [demo-transfer-01]",
 ])
 def test_rejects_unsupported_claims_even_with_valid_citation(monkeypatch, hits, candidate):
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", lambda *args: candidate)
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_completion", lambda *args: candidate)
     with pytest.raises(RuntimeError, match="ground|citation|evidence"):
         grounded_answer("My transfer is pending", hits, llm_model="test", llm_api_key="test")
 
 
 def test_accepts_exact_faq_sentence(monkeypatch, hits):
     candidate = "A pending status means completion has not been confirmed. [demo-transfer-01]"
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", lambda *args: candidate)
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_completion", lambda *args: candidate)
     assert grounded_answer("My transfer is pending", hits, llm_model="test", llm_api_key="test") == candidate
 
 

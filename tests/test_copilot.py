@@ -1,6 +1,7 @@
 import json
 from io import BytesIO
 from pathlib import Path
+from urllib.error import HTTPError
 
 import pytest
 
@@ -69,16 +70,16 @@ def test_rejects_llm_citations_outside_retrieved_sources(monkeypatch):
     ))
 
     def fake_urlopen(request, timeout):
-        return BytesIO(json.dumps({"choices": [{"message": {
-            "content": "Please freeze it. [demo-card-99]"
-        }}]}).encode())
+        return BytesIO(json.dumps({"candidates": [{"content": {"parts": [
+            {"text": "Please freeze it. [demo-card-99]"}
+        ]}}]}).encode())
 
     monkeypatch.setattr("fintech_support.copilot.urlopen", fake_urlopen)
     with pytest.raises(RuntimeError, match="outside the retrieved FAQ"):
         grounded_answer("My card was stolen", hits, llm_model="fake", llm_api_key="test-key")
 
 
-def test_nvidia_chat_api_and_grounded_citation(monkeypatch):
+def test_gemini_chat_api_and_grounded_citation(monkeypatch):
     hits = tuple(make_copilot("lost_or_stolen_card").retriever.search(
         "My card was stolen", intent="lost_or_stolen_card"
     ))
@@ -86,65 +87,96 @@ def test_nvidia_chat_api_and_grounded_citation(monkeypatch):
 
     def fake_urlopen(request, timeout):
         captured["url"] = request.full_url
-        captured["authorization"] = request.get_header("Authorization")
+        captured["api_key"] = request.get_header("X-goog-api-key")
         captured["timeout"] = timeout
         captured["payload"] = json.loads(request.data)
-        return BytesIO(json.dumps({"choices": [{"message": {
-            "content": "This prototype cannot freeze cards or change account settings. [demo-lost-01]"
-        }}]}).encode())
+        return BytesIO(json.dumps({"candidates": [{"content": {"parts": [
+            {"text": "This prototype cannot freeze cards or change account settings. [demo-lost-01]"}
+        ]}}]}).encode())
 
     monkeypatch.setattr("fintech_support.copilot.urlopen", fake_urlopen)
     answer = grounded_answer(
         "My card was stolen",
         hits,
-        llm_model="nvidia/example-instruct-model",
+        llm_model="gemini-3.5-flash-lite",
         llm_api_key="test-key",
     )
 
     assert "[demo-lost-01]" in answer
-    assert captured["url"] == "https://integrate.api.nvidia.com/v1/chat/completions"
-    assert captured["authorization"] == "Bearer test-key"
-    assert captured["timeout"] == 20.0
-    assert captured["payload"]["model"] == "nvidia/example-instruct-model"
-    assert captured["payload"]["temperature"] == 0
+    assert captured["url"] == "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"
+    assert captured["api_key"] == "test-key"
+    assert captured["timeout"] == 30.0
+    assert captured["payload"]["generationConfig"]["temperature"] == 0
+    assert "systemInstruction" in captured["payload"]
+    assert captured["payload"]["contents"][0]["role"] == "user"
 
 
-def test_gpt_oss_low_reasoning_budget_and_retry(monkeypatch):
-    from fintech_support.copilot import _request_nvidia_completion
+def test_gemini_rejects_unsafe_model_id_before_http(monkeypatch):
+    from fintech_support.copilot import _request_gemini_message
+
+    monkeypatch.setattr("fintech_support.copilot.urlopen", lambda *args, **kwargs:
+                        pytest.fail("Invalid model must not trigger an HTTP request"))
+    with pytest.raises(ValueError, match="Invalid Gemini model ID"):
+        _request_gemini_message("../other-api", "secret-key", {})
+
+
+def test_gemini_http_errors_hide_credentials(monkeypatch):
+    from fintech_support.copilot import _request_gemini_message
+
+    def failed_request(request, timeout):
+        raise HTTPError(request.full_url, 429, "quota exceeded", {}, None)
+
+    monkeypatch.setattr("fintech_support.copilot.urlopen", failed_request)
+    with pytest.raises(RuntimeError, match="rate limit or quota") as exc:
+        _request_gemini_message("gemini-3.5-flash-lite", "secret-key", {})
+    assert "secret-key" not in str(exc.value)
+
+
+def test_gemini_empty_candidates_use_grounded_fallback(monkeypatch, tmp_path):
+    copilot = make_tool_copilot(tmp_path)
+    monkeypatch.setattr("fintech_support.copilot.urlopen", lambda *args, **kwargs:
+                        BytesIO(b'{"candidates":[]}'))
+    result = copilot.respond("My card payment was declined", llm_model="gemini-3.5-flash-lite",
+                            llm_api_key="secret-key")
+    assert result.status == "generation_fallback"
+    assert "[demo-card-" in result.answer
+
+
+def test_gemini_ignores_thought_parts(monkeypatch):
+    from fintech_support.copilot import _request_gemini_completion
 
     payloads = []
 
     def completion(model, api_key, payload):
         payloads.append(payload)
-        return {"reasoning_content": "private reasoning", "content": None} if len(payloads) == 1 else {
-            "content": "Verified demo response."
-        }
+        return {"parts": [{"text": "private reasoning", "thought": True},
+                          {"text": "Verified demo response."}]}
 
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", completion)
-    assert _request_nvidia_completion("openai/gpt-oss-20b", "test", [
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_message", completion)
+    assert _request_gemini_completion("gemini-3.5-flash-lite", "test", [
         {"role": "user", "content": "support question"}
     ]) == "Verified demo response."
-    assert [payload["max_tokens"] for payload in payloads] == [2048, 4096]
-    assert all(payload["reasoning_effort"] == "low" for payload in payloads)
+    assert len(payloads) == 1
+    assert payloads[0]["generationConfig"]["maxOutputTokens"] == 2048
 
 
-def test_empty_gpt_oss_completion_uses_grounded_fallback(monkeypatch, tmp_path):
+def test_empty_gemini_completion_uses_grounded_fallback(monkeypatch, tmp_path):
     copilot = make_tool_copilot(tmp_path)
     calls = []
 
     def empty_completion(model, api_key, payload):
         calls.append(payload)
-        return {"content": None, "reasoning_content": "thinking"}
+        return {"parts": [{"text": "thinking", "thought": True}]}
 
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", empty_completion)
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_message", empty_completion)
     result = copilot.respond(
-        "My card payment was declined", llm_model="openai/gpt-oss-20b", llm_api_key="test",
+        "My card payment was declined", llm_model="gemini-3.5-flash-lite", llm_api_key="test",
     )
     assert result.status == "generation_fallback"
     assert result.generation_status == "unavailable"
     assert "[demo-card-" in result.answer
     assert "no final answer" in result.grounding_issues[0]
-    assert len(calls) == 2
+    assert len(calls) == 1
 
 
 def test_function_call_requires_demo_reference_even_if_checkbox_enabled(monkeypatch, tmp_path):
@@ -153,11 +185,11 @@ def test_function_call_requires_demo_reference_even_if_checkbox_enabled(monkeypa
     def valid_grounded_answer(*args):
         return "In the demo, ask the customer to verify their available balance and card limits in the app. [demo-card-02]"
 
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", valid_grounded_answer)
-    monkeypatch.setattr("fintech_support.copilot._select_nvidia_tool", lambda *args:
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_completion", valid_grounded_answer)
+    monkeypatch.setattr("fintech_support.copilot._select_gemini_tool", lambda *args:
                         pytest.fail("No synthetic ID was provided for a lookup"))
     result = copilot.respond(
-        "My card payment was declined", llm_model="openai/gpt-oss-20b",
+        "My card payment was declined", llm_model="gemini-3.5-flash-lite",
         llm_api_key="test", llm_select_tool=True,
     )
     assert result.tool_result is None
@@ -175,57 +207,57 @@ def make_tool_copilot(tmp_path, intent="declined_card_payment"):
     )
 
 
-def test_nvidia_tool_call_uses_verified_synthetic_record(monkeypatch, tmp_path):
+def test_gemini_tool_call_uses_verified_synthetic_record(monkeypatch, tmp_path):
     copilot = make_tool_copilot(tmp_path)
     requests = []
 
     def fake_completion(model, api_key, payload):
         requests.append(payload)
         if "tools" in payload:
-            return {"tool_calls": [{"function": {
+            return {"parts": [{"functionCall": {
                 "name": "lookup_demo_transaction",
-                "arguments": json.dumps({"reference": "TX-CARD-001"}),
+                "args": {"reference": "TX-CARD-001"},
             }}]}
-        return {"content": "If it is frozen, review the in-app unfreeze option. [demo-card-01]"}
+        return {"parts": [{"text": "If it is frozen, review the in-app unfreeze option. [demo-card-01]"}]}
 
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", fake_completion)
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_message", fake_completion)
     response = copilot.respond(
         "Why did my payment fail?",
         record_reference="TX-CARD-001",
         llm_model="demo-model", llm_api_key="fake-key", llm_select_tool=True,
     )
-    assert response.tool_routing == "nvidia_function_call"
+    assert response.tool_routing == "gemini_function_call"
     assert response.generation_status == "accepted"
     assert response.tool_result.reason_code == "CARD_FROZEN"
     assert "reason_code=CARD_FROZEN" in response.answer
     assert "[demo-card-01]" in response.answer
-    assert [row["function"]["name"] for row in requests[0]["tools"]] == [
+    assert [row["name"] for row in requests[0]["tools"][0]["functionDeclarations"]] == [
         "lookup_demo_card", "lookup_demo_transaction"
     ]
-    assert "reason_code=CARD_FROZEN" in requests[1]["messages"][1]["content"]
+    assert requests[0]["toolConfig"]["functionCallingConfig"]["mode"] == "ANY"
+    assert "reason_code=CARD_FROZEN" in requests[1]["contents"][0]["parts"][0]["text"]
     assert len(requests) == 2
 
 
-def test_gpt_oss_tool_selection_uses_reasoning_budget(monkeypatch, tmp_path):
+def test_gemini_tool_selection_uses_output_budget(monkeypatch, tmp_path):
     copilot = make_tool_copilot(tmp_path)
     payloads = []
 
     def completion(model, api_key, payload):
         payloads.append(payload)
         if "tools" in payload:
-            return {"tool_calls": [{"function": {
-                "name": "lookup_demo_transaction", "arguments": '{"reference":"TX-CARD-001"}',
+            return {"parts": [{"functionCall": {
+                "name": "lookup_demo_transaction", "args": {"reference": "TX-CARD-001"},
             }}]}
-        return {"content": "If it is frozen, review the in-app unfreeze option. [demo-card-01]"}
+        return {"parts": [{"text": "If it is frozen, review the in-app unfreeze option. [demo-card-01]"}]}
 
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", completion)
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_message", completion)
     result = copilot.respond(
-        "Why was TX-CARD-001 declined?", llm_model="openai/gpt-oss-20b",
+        "Why was TX-CARD-001 declined?", llm_model="gemini-3.5-flash-lite",
         llm_api_key="test", llm_select_tool=True,
     )
-    assert result.tool_routing == "nvidia_function_call"
-    assert payloads[0]["max_tokens"] == 1536
-    assert payloads[0]["reasoning_effort"] == "low"
+    assert result.tool_routing == "gemini_function_call"
+    assert payloads[0]["generationConfig"]["maxOutputTokens"] == 1024
 
 
 @pytest.mark.parametrize("tool,reference", [
@@ -233,17 +265,17 @@ def test_gpt_oss_tool_selection_uses_reasoning_budget(monkeypatch, tmp_path):
     ("lookup_demo_transaction", "TX-CARD-002"),
     ("lookup_demo_transaction", "TX-CARD-001 extra"),
 ])
-def test_nvidia_tool_call_rejects_wrong_selection(monkeypatch, tmp_path, tool, reference):
+def test_gemini_tool_call_rejects_wrong_selection(monkeypatch, tmp_path, tool, reference):
     copilot = make_tool_copilot(tmp_path)
     calls = []
 
     def fake_completion(model, api_key, payload):
         calls.append(payload)
-        return {"tool_calls": [{"function": {
-            "name": tool, "arguments": json.dumps({"reference": reference}),
+        return {"parts": [{"functionCall": {
+            "name": tool, "args": {"reference": reference},
         }}]}
 
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", fake_completion)
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_message", fake_completion)
     with pytest.raises(RuntimeError, match="outside the authorized"):
         copilot.respond(
             "Why did my card payment fail?", record_reference="TX-CARD-001",
@@ -253,15 +285,16 @@ def test_nvidia_tool_call_rejects_wrong_selection(monkeypatch, tmp_path, tool, r
 
 
 @pytest.mark.parametrize("bad_message", [
-    {"tool_calls": []},
-    {"tool_calls": [{"function": {"name": "lookup_demo_transaction", "arguments": "{bad"}}]},
-    {"tool_calls": [{"function": {"name": "lookup_demo_transaction", "arguments": "{}"}},
-                    {"function": {"name": "lookup_demo_transaction", "arguments": "{}"}}]},
+    {"parts": []},
+    {"parts": [{"functionCall": "invalid"}]},
+    {"parts": [{"functionCall": {"name": "lookup_demo_transaction", "args": "bad"}}]},
+    {"parts": [{"functionCall": {"name": "lookup_demo_transaction", "args": {}}},
+               {"functionCall": {"name": "lookup_demo_transaction", "args": {}}}]},
 ])
-def test_nvidia_tool_call_rejects_malformed_responses(monkeypatch, tmp_path, bad_message):
+def test_gemini_tool_call_rejects_malformed_responses(monkeypatch, tmp_path, bad_message):
     copilot = make_tool_copilot(tmp_path)
     monkeypatch.setattr(
-        "fintech_support.copilot._request_nvidia_message",
+        "fintech_support.copilot._request_gemini_message",
         lambda model, api_key, payload: bad_message,
     )
     with pytest.raises(RuntimeError, match="tool call|tool arguments"):
@@ -271,13 +304,13 @@ def test_nvidia_tool_call_rejects_malformed_responses(monkeypatch, tmp_path, bad
         )
 
 
-def test_invalid_reference_fails_before_nvidia_call(monkeypatch, tmp_path):
+def test_invalid_reference_fails_before_gemini_call(monkeypatch, tmp_path):
     copilot = make_tool_copilot(tmp_path)
 
     def should_not_call(*args, **kwargs):
-        pytest.fail("NVIDIA should not be called for an invalid demo reference")
+        pytest.fail("Gemini should not be called for an invalid demo reference")
 
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", should_not_call)
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_message", should_not_call)
     with pytest.raises(ValueError, match="TX-xxx"):
         copilot.respond(
             "My card payment failed", record_reference="CARD-001",
@@ -288,7 +321,7 @@ def test_invalid_reference_fails_before_nvidia_call(monkeypatch, tmp_path):
 def test_rejected_generation_falls_back_and_preserves_audit(monkeypatch, tmp_path):
     copilot = make_tool_copilot(tmp_path, "pending_transfer")
     invented = "Your transfer is completed for EUR 500. [demo-transfer-01]"
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", lambda *args: invented)
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_completion", lambda *args: invented)
     result = copilot.respond("My transfer TX-TRF-001 is pending", llm_model="test", llm_api_key="test")
     assert result.status == "grounding_fallback"
     assert result.generated_answer == invented
@@ -303,7 +336,7 @@ def test_not_found_does_not_ask_llm_to_infer_record(monkeypatch, tmp_path):
     def forbidden(*args):
         pytest.fail("A missing record must use deterministic guidance")
 
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", forbidden)
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_completion", forbidden)
     result = copilot.respond("My transfer TX-TRF-999 is pending", llm_model="test", llm_api_key="test")
     assert result.tool_result.found is False
     assert "no demo record" in result.answer
@@ -328,7 +361,7 @@ def test_invalid_tool_result_fails_before_generation(monkeypatch, tmp_path):
     copilot = make_tool_copilot(tmp_path, "pending_transfer")
     monkeypatch.setattr(copilot.tools, "call", lambda *args:
                         ToolResult("lookup_demo_transaction", "TX-TRF-002", True, "pending", "PROCESSING"))
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", lambda *args:
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_completion", lambda *args:
                         pytest.fail("Invalid tool results must not reach the LLM"))
     with pytest.raises(RuntimeError, match="Invalid tool result"):
         copilot.respond("My transfer TX-TRF-001 is pending", llm_model="test", llm_api_key="test")

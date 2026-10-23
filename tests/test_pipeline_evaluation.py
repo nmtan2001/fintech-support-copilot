@@ -58,7 +58,7 @@ def test_no_tool_cases_do_not_inflate_argument_accuracy(copilot):
 
 
 def test_bad_generated_claim_fails_despite_safe_fallback(copilot, monkeypatch):
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", lambda *args:
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_completion", lambda *args:
                         "Your transfer completed for EUR 500. [demo-transfer-01]")
     result = evaluate_cases(copilot, [transfer_case()], llm_model="test", llm_api_key="test")
     assert result["passed"] == 0
@@ -68,9 +68,9 @@ def test_bad_generated_claim_fails_despite_safe_fallback(copilot, monkeypatch):
 
 
 def test_wrong_tool_arguments_are_separate_from_selection(copilot, monkeypatch):
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", lambda *args: {
-        "tool_calls": [{"function": {"name": "lookup_demo_transaction",
-                                    "arguments": '{"reference":"TX-TRF-002"}'}}]
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_message", lambda *args: {
+        "parts": [{"functionCall": {"name": "lookup_demo_transaction",
+                                     "args": {"reference": "TX-TRF-002"}}}]
     })
     result = evaluate_cases(copilot, [transfer_case()], llm_model="test", llm_api_key="test",
                             llm_select_tool=True)
@@ -101,19 +101,19 @@ def test_fabricated_tool_data_fails_independent_expected_values(copilot, monkeyp
 def test_all_hand_authored_cases_with_oracle_routing(copilot, monkeypatch, llm_enabled):
     def synthetic_completion(model, api_key, payload):
         if "tools" in payload:
-            request = json.loads(payload["messages"][1]["content"])
-            return {"tool_calls": [{"function": {
+            request = json.loads(payload["contents"][0]["parts"][0]["text"])
+            return {"parts": [{"functionCall": {
                 "name": "lookup_demo_card" if request["intent"] == "lost_or_stolen_card"
                 else "lookup_demo_transaction",
-                "arguments": json.dumps({"reference": request["reference"]}),
+                "args": {"reference": request["reference"]},
             }}]}
-        evidence = payload["messages"][1]["content"].split("Synthetic FAQ evidence:\n", 1)[1]
+        evidence = payload["contents"][0]["parts"][0]["text"].split("Synthetic FAQ evidence:\n", 1)[1]
         first = evidence.splitlines()[0]
         citation = first.split(" ", 1)[0]
         content = next(faq.content for faq in copilot.retriever.faqs if faq.id == citation[1:-1])
-        return {"content": content + " " + citation}
+        return {"parts": [{"text": content + " " + citation}]}
 
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", synthetic_completion)
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_message", synthetic_completion)
     cases = json.loads((ROOT / "data/evaluation/copilot_smoke_cases.json").read_text())
     for case in cases:
         copilot.classifier = Classifier(case["expected_intent"])
@@ -141,7 +141,7 @@ def test_runtime_failure_is_recorded_and_later_cases_still_run(copilot, monkeypa
     def flaky(question, **kwargs):
         calls.append(question)
         if len(calls) == 1:
-            raise RuntimeError("NVIDIA rate limit reached")
+            raise RuntimeError("Gemini rate limit reached")
         return respond(question, **kwargs)
 
     monkeypatch.setattr(copilot, "respond", flaky)
@@ -157,15 +157,15 @@ def test_generation_coverage_does_not_imply_live_llm_evaluation(copilot):
 
 
 def test_wrong_citation_attribution_is_not_counted_as_correct(copilot, monkeypatch):
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", lambda *args:
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_completion", lambda *args:
                         "A pending status means completion has not been confirmed. [demo-transfer-03]")
     report = evaluate_cases(copilot, [transfer_case()], llm_model="test", llm_api_key="test")
     assert report["metrics"]["citation_accuracy"] == 0
 
 
 def test_malformed_arguments_preserve_observed_tool_selection(copilot, monkeypatch):
-    monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", lambda *args: {
-        "tool_calls": [{"function": {"name": "lookup_demo_transaction", "arguments": "{bad"}}]
+    monkeypatch.setattr("fintech_support.copilot._request_gemini_message", lambda *args: {
+        "parts": [{"functionCall": {"name": "lookup_demo_transaction", "args": "{bad"}}]
     })
     report = evaluate_cases(copilot, [transfer_case()], llm_model="test", llm_api_key="test",
                             llm_select_tool=True)

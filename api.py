@@ -55,18 +55,18 @@ def health():
 @app.post("/support")
 def support(payload: SupportRequest):
     if payload.llm_select_tool and not payload.use_llm:
-        raise HTTPException(status_code=400, detail="Enable use_llm to select tools with NVIDIA")
+        raise HTTPException(status_code=400, detail="Enable use_llm to select tools with Gemini")
     if (payload.use_llm or payload.llm_select_tool) and not (
-        os.environ.get("NVIDIA_API_KEY") and os.environ.get("NVIDIA_MODEL")
+        os.environ.get("GEMINI_API_KEY")
     ):
-        raise HTTPException(status_code=400, detail="Set NVIDIA_API_KEY and NVIDIA_MODEL to use generation")
+        raise HTTPException(status_code=400, detail="Set GEMINI_API_KEY to use generation")
     try:
         result = get_copilot().respond(
             payload.question,
             record_reference=payload.record_reference,
             min_confidence=payload.min_confidence,
-            llm_model=os.environ.get("NVIDIA_MODEL") if (payload.use_llm or payload.llm_select_tool) else None,
-            llm_api_key=os.environ.get("NVIDIA_API_KEY") if (payload.use_llm or payload.llm_select_tool) else None,
+            llm_model=os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite") if (payload.use_llm or payload.llm_select_tool) else None,
+            llm_api_key=os.environ.get("GEMINI_API_KEY") if (payload.use_llm or payload.llm_select_tool) else None,
             llm_select_tool=payload.llm_select_tool,
         )
     except ValueError as exc:
