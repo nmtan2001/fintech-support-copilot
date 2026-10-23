@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import socket
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -16,7 +17,7 @@ from fintech_support.grounding import FALLBACK, GroundingError, assess_answer
 
 
 DEFAULT_HF_MODEL_ID = "nmtan2001/fintech-support-distilbert"
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
 
 
 @dataclass(frozen=True)
@@ -160,8 +161,19 @@ def _request_gemini_message(model: str, api_key: str, payload: dict) -> dict:
         }
         reason = reasons.get(exc.code, f"Gemini returned HTTP {exc.code}")
         raise RuntimeError(reason) from exc
-    except (TimeoutError, URLError) as exc:
-        raise RuntimeError("Could not reach the Gemini API") from exc
+    except TimeoutError as exc:
+        raise RuntimeError("Gemini API connection timed out after 30 seconds") from exc
+    except URLError as exc:
+        reason = exc.reason
+        if isinstance(reason, TimeoutError):
+            detail = "connection timed out"
+        elif isinstance(reason, socket.gaierror):
+            detail = "DNS lookup failed for generativelanguage.googleapis.com"
+        elif isinstance(reason, OSError):
+            detail = f"{type(reason).__name__} (errno={reason.errno})"
+        else:
+            detail = type(reason).__name__
+        raise RuntimeError(f"Could not reach the Gemini API: {detail}") from exc
 
     try:
         result = json.loads(body)
@@ -179,7 +191,10 @@ def _request_gemini_completion(model: str, api_key: str, messages: list[dict[str
     response = _request_gemini_message(model, api_key, {
         "systemInstruction": {"parts": [{"text": system}]},
         "contents": [{"role": "user", "parts": [{"text": user}]}],
-        "generationConfig": {"temperature": 0, "maxOutputTokens": 2048},
+        "generationConfig": {
+            "maxOutputTokens": 2048,
+            "thinkingConfig": {"thinkingLevel": "low"},
+        },
     })
     answer = "\n".join(
         part["text"] for part in response["parts"]
@@ -213,7 +228,10 @@ def _select_gemini_tool(model: str, api_key: str, intent: str, reference: str) -
                 },
             } for name, description in tool_definitions]}],
             "toolConfig": {"functionCallingConfig": {"mode": "ANY"}},
-            "generationConfig": {"temperature": 0, "maxOutputTokens": 1024},
+            "generationConfig": {
+                "maxOutputTokens": 1024,
+                "thinkingConfig": {"thinkingLevel": "low"},
+            },
         },
     )
     calls = [part["functionCall"] for part in message["parts"]

@@ -106,7 +106,8 @@ def test_gemini_chat_api_and_grounded_citation(monkeypatch):
     assert captured["url"] == f"https://generativelanguage.googleapis.com/v1beta/models/{DEFAULT_GEMINI_MODEL}:generateContent"
     assert captured["api_key"] == "test-key"
     assert captured["timeout"] == 30.0
-    assert captured["payload"]["generationConfig"]["temperature"] == 0
+    assert "temperature" not in captured["payload"]["generationConfig"]
+    assert captured["payload"]["generationConfig"]["thinkingConfig"]["thinkingLevel"] == "low"
     assert "systemInstruction" in captured["payload"]
     assert captured["payload"]["contents"][0]["role"] == "user"
 
@@ -158,6 +159,7 @@ def test_gemini_ignores_thought_parts(monkeypatch):
     ]) == "Verified demo response."
     assert len(payloads) == 1
     assert payloads[0]["generationConfig"]["maxOutputTokens"] == 2048
+    assert payloads[0]["generationConfig"]["thinkingConfig"]["thinkingLevel"] == "low"
 
 
 def test_empty_gemini_completion_uses_grounded_fallback(monkeypatch, tmp_path):
@@ -258,6 +260,7 @@ def test_gemini_tool_selection_uses_output_budget(monkeypatch, tmp_path):
     )
     assert result.tool_routing == "gemini_function_call"
     assert payloads[0]["generationConfig"]["maxOutputTokens"] == 1024
+    assert payloads[0]["generationConfig"]["thinkingConfig"]["thinkingLevel"] == "low"
 
 
 @pytest.mark.parametrize("tool,reference", [
