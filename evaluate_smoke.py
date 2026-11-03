@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 
+from analyze_errors import resolve_checkpoint_dir
 from fintech_support.copilot import IntentClassifier, SupportCopilot, ToolSelectionError
 from fintech_support.demo_tools import DemoBankingTools, initialize_demo_database
 from fintech_support.evaluation import score, write_json
@@ -199,13 +200,23 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", choices=["distilbert", "baseline"], default="distilbert")
     parser.add_argument(
+        "--model-id",
+        help="Hugging Face model ID to use when the local DistilBERT checkpoint is absent",
+    )
+    parser.add_argument(
+        "--model-dir",
+        type=Path,
+        default=ROOT / "outputs/distilbert/model",
+        help="Checkpoint directory or parent directory containing the DistilBERT checkpoint",
+    )
+    parser.add_argument(
         "--cases", type=Path, default=ROOT / "data/evaluation/copilot_smoke_cases.json"
     )
     parser.add_argument(
         "--output", type=Path, default=ROOT / "outputs/evaluation/copilot_smoke.json"
     )
-    parser.add_argument("--llm-model", help="Optional Gemini model ID for an API-based evaluation run")
-    parser.add_argument("--llm-tool-calling", action="store_true", help="Let Gemini select the read-only demo tool")
+    parser.add_argument("--llm-model", help="Optional NVIDIA NIM model ID for an API-based evaluation run")
+    parser.add_argument("--llm-tool-calling", action="store_true", help="Let NVIDIA NIM select the read-only demo tool")
     parser.add_argument("--min-confidence", type=float, default=0.0)
     parser.add_argument("--strict", action="store_true", help="Exit with an error unless every case passes")
     args = parser.parse_args()
@@ -214,13 +225,21 @@ def main() -> None:
 
     if not 0 <= args.min_confidence <= 1:
         parser.error("--min-confidence must be between 0 and 1")
-    if args.model == "distilbert" and not (ROOT / "outputs/distilbert/model/config.json").is_file():
-        parser.error("DistilBERT artifacts are missing; use --model baseline explicitly")
+    transformer_dir = args.model_dir
+    if args.model == "distilbert":
+        try:
+            transformer_dir = resolve_checkpoint_dir(args.model_dir)
+        except FileNotFoundError:
+            if not args.model_id:
+                parser.error(
+                    "DistilBERT artifacts are missing; pass --model-id or use --model baseline"
+                )
 
     classifier, name = IntentClassifier.from_artifacts(
-        transformer_dir=ROOT / "outputs/distilbert/model",
+        transformer_dir=transformer_dir,
         baseline_path=ROOT / "outputs/baseline/model.joblib",
         prefer_transformer=args.model == "distilbert",
+        model_id=args.model_id,
     )
     cases = json.loads(args.cases.read_text(encoding="utf-8"))
     database_path = ROOT / "outputs/demo/demo.sqlite"
@@ -230,9 +249,9 @@ def main() -> None:
         FAQRetriever(load_faqs(ROOT / "data/faq/demo_policies.json")),
         DemoBankingTools(database_path),
     )
-    api_key = os.environ.get("GOOGLE_API_KEY") if args.llm_model else None
+    api_key = os.environ.get("NVIDIA_API_KEY") if args.llm_model else None
     if args.llm_model and not api_key:
-        parser.error("GOOGLE_API_KEY must be set for --llm-model")
+        parser.error("NVIDIA_API_KEY must be set for --llm-model")
     result = evaluate_cases(
         copilot, cases, llm_model=args.llm_model, llm_api_key=api_key,
         llm_select_tool=args.llm_tool_calling, min_confidence=args.min_confidence,
@@ -240,7 +259,7 @@ def main() -> None:
     result["classifier"] = name
     result["classifier_backend"] = args.model
     result["min_confidence"] = args.min_confidence
-    result["evaluation_mode"] = "live_gemini" if args.llm_model else "deterministic"
+    result["evaluation_mode"] = "live_nvidia_nim" if args.llm_model else "deterministic"
     result["llm"] = args.llm_model or "disabled; deterministic FAQ-grounded responses"
     result["llm_tool_calling"] = args.llm_tool_calling
     write_json(args.output, result)
