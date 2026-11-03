@@ -6,7 +6,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from fintech_support.copilot import DEFAULT_GEMINI_MODEL, DEFAULT_HF_MODEL_ID, IntentClassifier, SupportCopilot
+from fintech_support.copilot import DEFAULT_NVIDIA_MODEL, DEFAULT_HF_MODEL_ID, IntentClassifier, SupportCopilot
 from fintech_support.demo_tools import DemoBankingTools, initialize_demo_database
 from fintech_support.retrieval import FAQRetriever, load_faqs
 
@@ -104,28 +104,28 @@ def main():
         retrieval_backend = st.selectbox("FAQ retrieval", retrieval_backends)
         min_confidence = st.slider("Minimum classifier confidence (demo threshold)", 0.0, 1.0, 0.0, 0.05)
         st.caption("Classifier probabilities are not calibrated. Set 0 to disable threshold-based abstention.")
-        gemini_api_key = get_setting("GOOGLE_API_KEY")
-        has_key = bool(gemini_api_key)
+        nvidia_nim_api_key = get_setting("NVIDIA_API_KEY")
+        has_key = bool(nvidia_nim_api_key)
         use_llm = st.checkbox("Generate answer with an LLM", value=has_key, disabled=not has_key)
         if use_llm:
             llm_model = st.text_input(
-                "Gemini model ID",
-                value=get_setting("GEMINI_MODEL", DEFAULT_GEMINI_MODEL),
-                placeholder="Enter a model enabled for your Gemini API key",
+                "NVIDIA NIM model ID",
+                value=get_setting("NVIDIA_MODEL", DEFAULT_NVIDIA_MODEL),
+                placeholder="Enter a model enabled for your NVIDIA NIM API key",
             )
-            llm_api_key = gemini_api_key
+            llm_api_key = nvidia_nim_api_key
         else:
             llm_api_key = None
             llm_model = None
         if use_llm:
-            st.caption("The question and retrieved demo policies are sent to Gemini.")
+            st.caption("The question and retrieved demo policies are sent to NVIDIA NIM.")
         else:
-            st.caption("Set GOOGLE_API_KEY in Streamlit Secrets to enable LLM generation.")
+            st.caption("Set NVIDIA_API_KEY in Streamlit Secrets to enable LLM generation.")
         llm_select_tool = st.checkbox(
-            "Use Gemini function calling for synthetic lookups",
+            "Use NVIDIA NIM function calling for synthetic lookups",
             value=False,
             disabled=not use_llm,
-            help="Requires a synthetic reference such as TX-CARD-001. The selected Gemini model must support function calling.",
+            help="Requires a synthetic reference such as TX-CARD-001. The selected NVIDIA NIM model must support function calling.",
         )
 
     question = st.text_area(
@@ -139,7 +139,7 @@ def main():
         help="Read-only SQLite lookup for three supported workflows. You can also include the demo ID in the question.",
     )
     if llm_select_tool:
-        st.caption("To trigger Gemini tool calling, enter a demo reference or include it in the question (for example, TX-CARD-001).")
+        st.caption("To trigger NVIDIA NIM tool calling, enter a demo reference or include it in the question (for example, TX-CARD-001).")
     if not st.button("Get support", type="primary"):
         return
 
@@ -170,9 +170,9 @@ def main():
     if result.status != "answered":
         st.info(f"Fallback reason: {result.status}")
     if result.grounding_issues:
-        st.caption("Gemini generation details: " + "; ".join(result.grounding_issues))
+        st.caption("NVIDIA NIM generation details: " + "; ".join(result.grounding_issues))
     if llm_select_tool and result.tool_result is None:
-        st.info("No synthetic lookup was performed. Add a matching demo reference to trigger Gemini tool calling.")
+        st.info("No synthetic lookup was performed. Add a matching demo reference to trigger NVIDIA NIM tool calling.")
 
     if result.tool_result:
         st.subheader("Read-only demo tool call")
