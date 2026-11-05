@@ -20,6 +20,7 @@ from fintech_support.grounding import FALLBACK, GroundingError, assess_answer
 
 DEFAULT_HF_MODEL_ID = "nmtan2001/fintech-support-distilbert"
 DEFAULT_NVIDIA_MODEL = "nvidia/nemotron-3.5-bolt-e4b"
+DEFAULT_NVIDIA_TOOL_MODEL = "mistralai/mistral-large-4-1t-a52b"
 NVIDIA_CHAT_COMPLETIONS_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 NVIDIA_REQUEST_TIMEOUT_SECONDS = 90
 NVIDIA_503_MAX_RETRIES = 2
@@ -364,14 +365,16 @@ class SupportCopilot:
         llm_api_key: str | None = None,
         record_reference: str | None = None,
         llm_select_tool: bool = False,
+        llm_tool_model: str | None = None,
     ) -> SupportResult:
         if not question.strip() or len(question) > 2000:
             raise ValueError("Customer question must contain 1 to 2000 characters")
         if not 0 <= min_confidence <= 1:
             raise ValueError("min_confidence must be between 0 and 1")
         prediction = self.classifier.predict(question)
-        if llm_select_tool and (not llm_model or not llm_api_key):
-            raise ValueError("NVIDIA NIM model and API key are required for LLM tool selection")
+        tool_model = llm_tool_model or llm_model
+        if llm_select_tool and (not tool_model or not llm_api_key):
+            raise ValueError("NVIDIA NIM tool-selection model and API key are required")
         if prediction.confidence < min_confidence:
             return SupportResult(prediction.intent, prediction.confidence, FALLBACK, (), "low_confidence")
         hits = tuple(self.retriever.search(question, intent=prediction.intent, top_k=3))
@@ -388,7 +391,7 @@ class SupportCopilot:
             reference = reference.strip().upper()
             expected_tool = self.tools.validate(prediction.intent, reference)
             if llm_select_tool:
-                selected = _select_nvidia_tool(llm_model, llm_api_key, prediction.intent, reference)
+                selected = _select_nvidia_tool(tool_model, llm_api_key, prediction.intent, reference)
                 if selected != expected_tool:
                     raise RuntimeError("NVIDIA NIM returned the wrong tool for the classified intent")
                 tool_routing = "nvidia_nim_function_call"
