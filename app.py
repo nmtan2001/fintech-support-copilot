@@ -46,8 +46,8 @@ def load_classifier(
 
 
 @st.cache_resource(show_spinner=False)
-def load_retriever(backend: str):
-    return FAQRetriever(load_faqs(ROOT / "data/faq/demo_policies.json"), backend=backend)
+def load_retriever():
+    return FAQRetriever(load_faqs(ROOT / "data/faq/demo_policies.json"), backend="tfidf")
 
 
 @st.cache_resource(show_spinner=False)
@@ -68,26 +68,19 @@ def main():
     transformer_configured = transformer_downloaded or bool(model_id)
     missing = [name for name in ("torch", "transformers") if importlib.util.find_spec(name) is None]
     transformer_available = transformer_configured and not missing
-    choices = []
+    baseline_available = (ROOT / "outputs/baseline/model.joblib").is_file()
     if transformer_available:
-        choices.append("DistilBERT")
-    if (ROOT / "outputs/baseline/model.joblib").is_file():
-        choices.append("TF-IDF + Logistic Regression")
+        model_choice = "DistilBERT"
+    elif baseline_available:
+        model_choice = "TF-IDF + Logistic Regression"
+    else:
+        model_choice = None
 
-    if transformer_configured and missing:
-        st.info(
-            "Local DistilBERT inference requires: "
-            + ", ".join(missing)
-            + ". Install the CPU inference dependencies or select the baseline."
-        )
     if not transformer_downloaded and not model_id:
         st.info("Set HF_MODEL_ID in Streamlit Secrets to load the trained DistilBERT from Hugging Face.")
-    if not choices:
+    if model_choice is None:
         st.error("No usable classifier. Download a model and install its dependencies, or run baseline.py.")
         st.stop()
-
-    with st.sidebar:
-        model_choice = st.selectbox("Intent classifier", choices)
 
     try:
         classifier, model_name = load_classifier(
@@ -100,70 +93,41 @@ def main():
         st.error(f"Could not load a classifier: {exc}")
         st.stop()
 
-    st.caption(f"Intent classifier: {model_name} | BANKING77, 77 intents")
-
-    with st.sidebar:
-        st.subheader("Demo configuration")
-        retrieval_backends = ["tfidf"]
-        if importlib.util.find_spec("sentence_transformers") is not None:
-            retrieval_backends.append("semantic")
-        retrieval_backend = st.selectbox("FAQ retrieval", retrieval_backends)
-        min_confidence = st.slider("Minimum classifier confidence (demo threshold)", 0.0, 1.0, 0.0, 0.05)
-        st.caption("Classifier probabilities are not calibrated. Set 0 to disable threshold-based abstention.")
-        nvidia_nim_api_key = get_setting("NVIDIA_API_KEY")
-        has_key = bool(nvidia_nim_api_key)
-        use_llm = st.checkbox("Generate answer with an LLM", value=has_key, disabled=not has_key)
-        if use_llm:
-            llm_model = st.text_input(
-                "NVIDIA NIM model ID",
-                value=get_setting("NVIDIA_MODEL", DEFAULT_NVIDIA_MODEL),
-                placeholder="Enter a model enabled for your NVIDIA NIM API key",
-            )
-            llm_api_key = nvidia_nim_api_key
-        else:
-            llm_api_key = None
-            llm_model = None
-        if use_llm:
-            st.caption("The question and retrieved demo policies are sent to NVIDIA NIM.")
-        else:
-            st.caption("Set NVIDIA_API_KEY in Streamlit Secrets to enable LLM generation.")
-        llm_select_tool = st.checkbox(
-            "Use NVIDIA NIM function calling for synthetic lookups",
-            value=has_key,
-            disabled=not use_llm,
-            help="Requires a synthetic reference such as TX-CARD-001. Uses the dedicated NVIDIA_TOOL_MODEL setting below.",
+    nvidia_nim_api_key = get_setting("NVIDIA_API_KEY")
+    use_llm = bool(nvidia_nim_api_key)
+    llm_api_key = nvidia_nim_api_key if use_llm else None
+    llm_model = DEFAULT_NVIDIA_MODEL if use_llm else None
+    llm_tool_model = DEFAULT_NVIDIA_TOOL_MODEL if use_llm else None
+    llm_select_tool = use_llm
+    st.caption(
+        f"Classifier: {model_name} | FAQ retrieval: TF-IDF | "
+        + (f"NVIDIA answer: {llm_model} | tool selection: {llm_tool_model}" if use_llm
+           else "LLM disabled: add NVIDIA_API_KEY to enable generation and function calling")
+    )
+    if transformer_configured and missing and model_choice != "DistilBERT":
+        st.info(
+            "DistilBERT needs " + ", ".join(missing)
+            + "; using the TF-IDF + Logistic Regression fallback."
         )
-        llm_tool_model = None
-        if llm_select_tool:
-            llm_tool_model = st.text_input(
-                "NVIDIA NIM tool-selection model ID",
-                value=get_setting("NVIDIA_TOOL_MODEL", DEFAULT_NVIDIA_TOOL_MODEL),
-                help="Used only to select the synthetic lookup tool. The answer model above generates the final reply.",
-            )
 
     question = st.text_area(
         "Customer question",
-        value="My card payment was declined. How can I fix it?",
+        value="Why was my TX-CARD-001 card payment declined?",
         max_chars=2000,
     )
-    record_reference = st.text_input(
-        "Synthetic record reference (optional)",
-        placeholder="TX-CARD-001, TX-TRF-001 or CARD-001",
-        help="Read-only SQLite lookup for three supported workflows. You can also include the demo ID in the question.",
-    )
     if llm_select_tool:
-        st.caption("To trigger NVIDIA NIM tool calling, enter a demo reference or include it in the question (for example, TX-CARD-001).")
+        st.caption("Include TX-CARD-001, TX-TRF-001, or CARD-001 in a supported question to trigger a read-only demo lookup.")
+    elif not use_llm:
+        st.caption("Include a synthetic reference such as TX-CARD-001 to use the local read-only demo lookup.")
     if not st.button("Get support", type="primary"):
         return
 
     try:
-        retriever = load_retriever(retrieval_backend)
+        retriever = load_retriever()
         result = SupportCopilot(classifier, retriever, load_demo_tools()).respond(
             question,
-            min_confidence=min_confidence,
             llm_model=llm_model,
             llm_api_key=llm_api_key,
-            record_reference=record_reference or None,
             llm_select_tool=llm_select_tool,
             llm_tool_model=llm_tool_model,
         )
@@ -186,7 +150,7 @@ def main():
     if result.grounding_issues:
         st.caption("NVIDIA NIM generation details: " + "; ".join(result.grounding_issues))
     if llm_select_tool and result.tool_result is None:
-        st.info("No synthetic lookup was performed. Add a matching demo reference to trigger NVIDIA NIM tool calling.")
+        st.info("No lookup was performed. Include a supported synthetic reference in the question to trigger it.")
 
     if result.tool_result:
         st.subheader("Read-only demo tool call")
