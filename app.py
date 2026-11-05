@@ -6,7 +6,13 @@ from pathlib import Path
 
 import streamlit as st
 
-from fintech_support.copilot import DEFAULT_NVIDIA_MODEL, DEFAULT_HF_MODEL_ID, IntentClassifier, SupportCopilot
+from fintech_support.copilot import (
+    DEFAULT_HF_MODEL_ID,
+    DEFAULT_NVIDIA_MODEL,
+    DEFAULT_NVIDIA_TOOL_MODEL,
+    IntentClassifier,
+    SupportCopilot,
+)
 from fintech_support.demo_tools import DemoBankingTools, initialize_demo_database
 from fintech_support.retrieval import FAQRetriever, load_faqs
 
@@ -123,10 +129,17 @@ def main():
             st.caption("Set NVIDIA_API_KEY in Streamlit Secrets to enable LLM generation.")
         llm_select_tool = st.checkbox(
             "Use NVIDIA NIM function calling for synthetic lookups",
-            value=False,
+            value=has_key,
             disabled=not use_llm,
-            help="Requires a synthetic reference such as TX-CARD-001. The selected NVIDIA NIM model must support function calling.",
+            help="Requires a synthetic reference such as TX-CARD-001. Uses the dedicated NVIDIA_TOOL_MODEL setting below.",
         )
+        llm_tool_model = None
+        if llm_select_tool:
+            llm_tool_model = st.text_input(
+                "NVIDIA NIM tool-selection model ID",
+                value=get_setting("NVIDIA_TOOL_MODEL", DEFAULT_NVIDIA_TOOL_MODEL),
+                help="Used only to select the synthetic lookup tool. The answer model above generates the final reply.",
+            )
 
     question = st.text_area(
         "Customer question",
@@ -152,6 +165,7 @@ def main():
             llm_api_key=llm_api_key,
             record_reference=record_reference or None,
             llm_select_tool=llm_select_tool,
+            llm_tool_model=llm_tool_model,
         )
     except (ImportError, ValueError, RuntimeError, OSError) as exc:
         st.error(f"Could not process this request: {exc}")
