@@ -9,7 +9,12 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from fintech_support.copilot import DEFAULT_NVIDIA_MODEL, IntentClassifier, SupportCopilot
+from fintech_support.copilot import (
+    DEFAULT_NVIDIA_MODEL,
+    DEFAULT_NVIDIA_TOOL_MODEL,
+    IntentClassifier,
+    SupportCopilot,
+)
 from fintech_support.demo_tools import DemoBankingTools, initialize_demo_database
 from fintech_support.retrieval import FAQRetriever, load_faqs
 
@@ -68,6 +73,10 @@ def support(payload: SupportRequest):
             llm_model=os.environ.get("NVIDIA_MODEL", DEFAULT_NVIDIA_MODEL) if (payload.use_llm or payload.llm_select_tool) else None,
             llm_api_key=os.environ.get("NVIDIA_API_KEY") if (payload.use_llm or payload.llm_select_tool) else None,
             llm_select_tool=payload.llm_select_tool,
+            llm_tool_model=(
+                os.environ.get("NVIDIA_TOOL_MODEL", DEFAULT_NVIDIA_TOOL_MODEL)
+                if payload.llm_select_tool else None
+            ),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
