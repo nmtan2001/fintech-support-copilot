@@ -19,7 +19,7 @@ from fintech_support.grounding import FALLBACK, GroundingError, assess_answer
 
 
 DEFAULT_HF_MODEL_ID = "nmtan2001/fintech-support-distilbert"
-DEFAULT_NVIDIA_MODEL = "mistralai/mistral-large-4-1t-a52b"
+DEFAULT_NVIDIA_MODEL = "nvidia/nemotron-3.5-bolt-e4b"
 NVIDIA_CHAT_COMPLETIONS_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 NVIDIA_REQUEST_TIMEOUT_SECONDS = 90
 NVIDIA_503_MAX_RETRIES = 2
