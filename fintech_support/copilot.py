@@ -203,6 +203,7 @@ def _request_nvidia_completion(model: str, api_key: str, messages: list[dict[str
     response = _request_nvidia_message(model, api_key, {
         "messages": messages,
         "max_tokens": 2048,
+        "reasoning_effort": "none",
     })
     answer = response.get("content")
     answer = answer.strip() if isinstance(answer, str) else ""
