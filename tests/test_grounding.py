@@ -18,13 +18,13 @@ def hits():
 
 
 @pytest.mark.parametrize("candidate", [
-    "Your transfer is completed. [demo-transfer-01]",
-    "The transfer amount is EUR 500. [demo-transfer-01]",
-    "Your transfer was delayed by fraud screening. [demo-transfer-01]",
-    "Your transfer arrives tomorrow. [demo-transfer-01]",
-    "A pending status means completion has not been confirmed. [demo-transfer-03]",
-    "A pending status means completion has not been confirmed.",
-    "completion has not been confirmed [demo-transfer-01]",
+    "Your transfer is completed. [HELP-TRANSFER-01]",
+    "The transfer amount is EUR 500. [HELP-TRANSFER-01]",
+    "Your transfer was delayed by fraud screening. [HELP-TRANSFER-01]",
+    "Your transfer arrives tomorrow. [HELP-TRANSFER-01]",
+    "A pending status means the transfer is still being processed. [HELP-TRANSFER-03]",
+    "A pending status means the transfer is still being processed.",
+    "the transfer is still being processed [HELP-TRANSFER-01]",
 ])
 def test_rejects_unsupported_claims_even_with_valid_citation(monkeypatch, hits, candidate):
     monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", lambda *args: candidate)
@@ -33,7 +33,7 @@ def test_rejects_unsupported_claims_even_with_valid_citation(monkeypatch, hits, 
 
 
 def test_accepts_exact_faq_sentence(monkeypatch, hits):
-    candidate = "A pending status means completion has not been confirmed. [demo-transfer-01]"
+    candidate = "A pending status means the transfer is still being processed. [HELP-TRANSFER-01]"
     monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", lambda *args: candidate)
     assert grounded_answer("My transfer is pending", hits, llm_model="test", llm_api_key="test") == candidate
 
