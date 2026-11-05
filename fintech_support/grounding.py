@@ -8,7 +8,7 @@ from fintech_support.retrieval import Hit
 
 
 FALLBACK = (
-    "This demo does not have a verified support article for your request. "
+    "I couldn't find a relevant help article for this request. "
     "Please contact your financial provider through its official support channel."
 )
 CITATION_PATTERN = re.compile(r"\[([^\[\]\n]+)\]")
@@ -38,8 +38,6 @@ def assess_answer(
         text = text[len(tool_result.render()):].strip()
     if allow_fallback and text == FALLBACK:
         return GroundingAssessment(True, True, ())
-    if text.startswith("Demo guidance: "):
-        text = text[len("Demo guidance: "):]
     sources = {hit.faq.id: hit.faq.content for hit in hits}
     issues = []
     citations_valid = True
