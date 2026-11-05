@@ -6,7 +6,12 @@ import os
 from pathlib import Path
 
 from analyze_errors import resolve_checkpoint_dir
-from fintech_support.copilot import IntentClassifier, SupportCopilot, ToolSelectionError
+from fintech_support.copilot import (
+    DEFAULT_NVIDIA_TOOL_MODEL,
+    IntentClassifier,
+    SupportCopilot,
+    ToolSelectionError,
+)
 from fintech_support.demo_tools import DemoBankingTools, initialize_demo_database
 from fintech_support.evaluation import score, write_json
 from fintech_support.grounding import assess_answer
@@ -42,7 +47,7 @@ def _validate_case(case: dict) -> None:
 def evaluate_cases(
     copilot: SupportCopilot, cases: list[dict], *, llm_model: str | None = None,
     llm_api_key: str | None = None, llm_select_tool: bool = False,
-    min_confidence: float = 0.0,
+    llm_tool_model: str | None = None, min_confidence: float = 0.0,
 ) -> dict:
     if not cases:
         raise ValueError("Smoke case set must not be empty")
@@ -69,6 +74,7 @@ def evaluate_cases(
                 min_confidence=case.get("min_confidence", min_confidence),
                 llm_model=llm_model, llm_api_key=llm_api_key,
                 llm_select_tool=llm_select_tool,
+                llm_tool_model=llm_tool_model,
             )
         except (ValueError, RuntimeError, OSError) as exc:
             expected_rejection = (
@@ -216,6 +222,10 @@ def main() -> None:
         "--output", type=Path, default=ROOT / "outputs/evaluation/copilot_smoke.json"
     )
     parser.add_argument("--llm-model", help="Optional NVIDIA NIM model ID for an API-based evaluation run")
+    parser.add_argument(
+        "--llm-tool-model", default=os.environ.get("NVIDIA_TOOL_MODEL", DEFAULT_NVIDIA_TOOL_MODEL),
+        help="NVIDIA NIM function-calling model (defaults to NVIDIA_TOOL_MODEL or the verified default)",
+    )
     parser.add_argument("--llm-tool-calling", action="store_true", help="Let NVIDIA NIM select the read-only demo tool")
     parser.add_argument("--min-confidence", type=float, default=0.0)
     parser.add_argument("--strict", action="store_true", help="Exit with an error unless every case passes")
@@ -254,13 +264,15 @@ def main() -> None:
         parser.error("NVIDIA_API_KEY must be set for --llm-model")
     result = evaluate_cases(
         copilot, cases, llm_model=args.llm_model, llm_api_key=api_key,
-        llm_select_tool=args.llm_tool_calling, min_confidence=args.min_confidence,
+        llm_select_tool=args.llm_tool_calling, llm_tool_model=args.llm_tool_model,
+        min_confidence=args.min_confidence,
     )
     result["classifier"] = name
     result["classifier_backend"] = args.model
     result["min_confidence"] = args.min_confidence
     result["evaluation_mode"] = "live_nvidia_nim" if args.llm_model else "deterministic"
     result["llm"] = args.llm_model or "disabled; deterministic FAQ-grounded responses"
+    result["llm_tool_model"] = args.llm_tool_model if args.llm_tool_calling else None
     result["llm_tool_calling"] = args.llm_tool_calling
     write_json(args.output, result)
     print(f"{name}: {result['passed']}/{result['count']} smoke cases passed")
