@@ -33,7 +33,7 @@ def transfer_case(**overrides):
     return {
         "question": "My transfer TX-TRF-001 is pending",
         "expected_intent": "pending_transfer", "expected_status": "answered",
-        "expected_faq_id": "demo-transfer-01", "expected_tool": "lookup_demo_transaction",
+        "expected_faq_id": "HELP-TRANSFER-01", "expected_tool": "lookup_demo_transaction",
         "expected_reference": "TX-TRF-001", "expected_found": True,
         "expected_record_status": "pending", "expected_reason_code": "PROCESSING", **overrides,
     }
@@ -59,7 +59,7 @@ def test_no_tool_cases_do_not_inflate_argument_accuracy(copilot):
 
 def test_bad_generated_claim_fails_despite_safe_fallback(copilot, monkeypatch):
     monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", lambda *args:
-                        "Your transfer completed for EUR 500. [demo-transfer-01]")
+                        "Your transfer completed for EUR 500. [HELP-TRANSFER-01]")
     result = evaluate_cases(copilot, [transfer_case()], llm_model="test", llm_api_key="test")
     assert result["passed"] == 0
     assert result["metrics"]["faithfulness"] == 0
@@ -107,7 +107,7 @@ def test_all_hand_authored_cases_with_oracle_routing(copilot, monkeypatch, llm_e
                 else "lookup_demo_transaction",
                 "arguments": json.dumps({"reference": request["reference"]}),
             }}]}
-        evidence = payload["messages"][1]["content"].split("Synthetic FAQ evidence:\n", 1)[1]
+        evidence = payload["messages"][1]["content"].split("Help-center evidence:\n", 1)[1]
         first = evidence.splitlines()[0]
         citation = first.split(" ", 1)[0]
         content = next(faq.content for faq in copilot.retriever.faqs if faq.id == citation[1:-1])
@@ -158,7 +158,7 @@ def test_generation_coverage_does_not_imply_live_llm_evaluation(copilot):
 
 def test_wrong_citation_attribution_is_not_counted_as_correct(copilot, monkeypatch):
     monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", lambda *args:
-                        "A pending status means completion has not been confirmed. [demo-transfer-03]")
+                        "A pending status means the transfer is still being processed. [HELP-TRANSFER-03]")
     report = evaluate_cases(copilot, [transfer_case()], llm_model="test", llm_api_key="test")
     assert report["metrics"]["citation_accuracy"] == 0
 
