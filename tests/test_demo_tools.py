@@ -72,13 +72,13 @@ def test_copilot_invokes_tools_only_after_supported_classification(tools):
     copilot = SupportCopilot(Classifier("declined_card_payment"), retriever, tools)
     result = copilot.respond("My card payment failed. Check TX-CARD-001 please")
     assert result.tool_result is not None
-    assert "status=declined" in result.answer
-    assert "reason_code=CARD_FROZEN" in result.answer
-    assert "[demo-card-" in result.answer
+    assert "Card payment TX-CARD-001 was declined." in result.answer
+    assert "Reason: the card was frozen." in result.answer
+    assert "[HELP-CARD-" in result.answer
     assert copilot.respond("My card was declined").tool_result is None
     tool_only = copilot.respond("zqxwjkrn", record_reference="TX-CARD-001")
     assert tool_only.status == "tool_only"
-    assert "status=declined" in tool_only.answer
+    assert "Card payment TX-CARD-001 was declined." in tool_only.answer
 
     low = SupportCopilot(Classifier("declined_card_payment", 0.1), retriever, tools)
     assert low.respond("My card was declined, TX-CARD-001", min_confidence=0.5).tool_result is None
