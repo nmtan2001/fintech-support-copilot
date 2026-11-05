@@ -70,11 +70,11 @@ def support(payload: SupportRequest):
             payload.question,
             record_reference=payload.record_reference,
             min_confidence=payload.min_confidence,
-            llm_model=os.environ.get("NVIDIA_MODEL", DEFAULT_NVIDIA_MODEL) if (payload.use_llm or payload.llm_select_tool) else None,
+            llm_model=DEFAULT_NVIDIA_MODEL if (payload.use_llm or payload.llm_select_tool) else None,
             llm_api_key=os.environ.get("NVIDIA_API_KEY") if (payload.use_llm or payload.llm_select_tool) else None,
             llm_select_tool=payload.llm_select_tool,
             llm_tool_model=(
-                os.environ.get("NVIDIA_TOOL_MODEL", DEFAULT_NVIDIA_TOOL_MODEL)
+                DEFAULT_NVIDIA_TOOL_MODEL
                 if payload.llm_select_tool else None
             ),
         )
