@@ -172,6 +172,21 @@ def _request_nvidia_message(model: str, api_key: str, payload: dict) -> dict:
                 503: "NVIDIA NIM is temporarily overloaded (HTTP 503) after retries",
             }
             reason = reasons.get(exc.code, f"NVIDIA NIM returned HTTP {exc.code}")
+            try:
+                error_payload = json.loads(exc.read(2048))
+                error = error_payload.get("error", error_payload) if isinstance(error_payload, dict) else None
+                detail = (
+                    error.get("message") or error.get("detail")
+                    if isinstance(error, dict) else None
+                )
+            except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+                detail = None
+            if isinstance(detail, str) and detail.strip():
+                detail = " ".join(detail.split())
+                if api_key:
+                    detail = detail.replace(api_key, "[redacted]")
+                detail = detail[:300]
+                reason = f"{reason}: {detail}"
             raise RuntimeError(reason) from exc
         except TimeoutError as exc:
             raise RuntimeError(
@@ -191,24 +206,26 @@ def _request_nvidia_message(model: str, api_key: str, payload: dict) -> dict:
 
     try:
         result = json.loads(body)
-        message = result["choices"][0]["message"]
+        choice = result["choices"][0]
+        message = choice["message"]
     except (json.JSONDecodeError, KeyError, IndexError, TypeError) as exc:
         raise EmptyCompletionError("NVIDIA NIM returned no usable response") from exc
     if not isinstance(message, dict):
         raise EmptyCompletionError("NVIDIA NIM returned no usable response")
-    return message
+    return {**message, "_nvidia_finish_reason": choice.get("finish_reason")}
 
 
 def _request_nvidia_completion(model: str, api_key: str, messages: list[dict[str, str]]) -> str:
     response = _request_nvidia_message(model, api_key, {
         "messages": messages,
         "max_tokens": 2048,
-        "reasoning_effort": "none",
     })
     answer = response.get("content")
     answer = answer.strip() if isinstance(answer, str) else ""
     if not answer:
-        raise EmptyCompletionError("NVIDIA NIM returned no final answer")
+        finish_reason = response.get("_nvidia_finish_reason")
+        detail = f" (finish_reason={finish_reason})" if isinstance(finish_reason, str) else ""
+        raise EmptyCompletionError(f"NVIDIA NIM returned no final answer{detail}")
     return answer
 
 
