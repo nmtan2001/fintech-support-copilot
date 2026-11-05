@@ -32,9 +32,9 @@ def make_copilot(intent, confidence=0.95):
 def test_returns_synthetic_policy_with_source():
     response = make_copilot("lost_or_stolen_card").respond("I lost my card. Can I freeze it?")
     assert response.status == "answered"
-    assert "[demo-lost-01]" in response.answer
-    assert "cannot freeze cards" in response.answer
-    assert all(hit.faq.source.startswith("Synthetic demo policy") for hit in response.retrieved)
+    assert "[HELP-LOST-CARD-01]" in response.answer
+    assert "freeze it immediately in Cards" in response.answer
+    assert all(hit.faq.source.endswith("Help Centre") for hit in response.retrieved)
 
 
 def test_unsupported_intent_abstains():
@@ -94,7 +94,7 @@ def test_nvidia_nim_chat_api_and_grounded_citation(monkeypatch):
         captured["timeout"] = timeout
         captured["payload"] = json.loads(request.data)
         return BytesIO(json.dumps({"choices": [{"message": {
-            "content": "This prototype cannot freeze cards or change account settings. [demo-lost-01]"
+            "content": "If your card is lost or stolen, freeze it immediately in Cards. [HELP-LOST-CARD-01]"
         }}]}).encode())
 
     monkeypatch.setattr("fintech_support.copilot.urlopen", fake_urlopen)
@@ -105,7 +105,7 @@ def test_nvidia_nim_chat_api_and_grounded_citation(monkeypatch):
         llm_api_key="test-key",
     )
 
-    assert "[demo-lost-01]" in answer
+    assert "[HELP-LOST-CARD-01]" in answer
     assert captured["url"] == "https://integrate.api.nvidia.com/v1/chat/completions"
     assert captured["api_key"] == "Bearer test-key"
     assert captured["timeout"] == NVIDIA_REQUEST_TIMEOUT_SECONDS
@@ -186,7 +186,7 @@ def test_nvidia_nim_empty_choices_use_grounded_fallback(monkeypatch, tmp_path):
     result = copilot.respond("My card payment was declined", llm_model=DEFAULT_NVIDIA_MODEL,
                             llm_api_key="secret-key")
     assert result.status == "generation_fallback"
-    assert "[demo-card-" in result.answer
+    assert "[HELP-CARD-" in result.answer
 
 
 def test_nvidia_nim_completion_preserves_chat_messages(monkeypatch):
@@ -221,7 +221,7 @@ def test_empty_nvidia_nim_completion_uses_grounded_fallback(monkeypatch, tmp_pat
     )
     assert result.status == "generation_fallback"
     assert result.generation_status == "unavailable"
-    assert "[demo-card-" in result.answer
+    assert "[HELP-CARD-" in result.answer
     assert "no final answer" in result.grounding_issues[0]
     assert len(calls) == 1
 
@@ -245,7 +245,7 @@ def test_function_call_requires_demo_reference_even_if_checkbox_enabled(monkeypa
     copilot = make_tool_copilot(tmp_path)
 
     def valid_grounded_answer(*args):
-        return "In the demo, ask the customer to verify their available balance and card limits in the app. [demo-card-02]"
+        return "A card payment can be declined when the available balance is insufficient, a spending limit has been reached, or the merchant does not accept the card. [HELP-CARD-02]"
 
     monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", valid_grounded_answer)
     monkeypatch.setattr("fintech_support.copilot._select_nvidia_tool", lambda *args:
@@ -280,7 +280,7 @@ def test_nvidia_nim_tool_call_uses_verified_synthetic_record(monkeypatch, tmp_pa
                 "name": "lookup_demo_transaction",
                 "arguments": json.dumps({"reference": "TX-CARD-001"}),
             }}]}
-        return {"content": "If it is frozen, review the in-app unfreeze option. [demo-card-01]"}
+        return {"content": "If it is frozen, follow the in-app steps to unfreeze it before trying again. [HELP-CARD-01]"}
 
     monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", fake_completion)
     response = copilot.respond(
@@ -291,11 +291,11 @@ def test_nvidia_nim_tool_call_uses_verified_synthetic_record(monkeypatch, tmp_pa
     assert response.tool_routing == "nvidia_nim_function_call"
     assert response.generation_status == "accepted"
     assert response.tool_result.reason_code == "CARD_FROZEN"
-    assert "reason_code=CARD_FROZEN" in response.answer
-    assert "[demo-card-01]" in response.answer
+    assert "Reason: the card was frozen." in response.answer
+    assert "[HELP-CARD-01]" in response.answer
     assert requests[0]["tools"][0]["function"]["name"] == "lookup_demo_transaction"
     assert requests[0]["tool_choice"]["function"]["name"] == "lookup_demo_transaction"
-    assert "reason_code=CARD_FROZEN" in requests[1]["messages"][1]["content"]
+    assert "Reason: the card was frozen." in requests[1]["messages"][1]["content"]
     assert len(requests) == 2
 
 
@@ -310,7 +310,7 @@ def test_nvidia_nim_tool_selection_uses_output_budget(monkeypatch, tmp_path):
                 "name": "lookup_demo_transaction",
                 "arguments": json.dumps({"reference": "TX-CARD-001"}),
             }}]}
-        return {"content": "If it is frozen, review the in-app unfreeze option. [demo-card-01]"}
+        return {"content": "If it is frozen, follow the in-app steps to unfreeze it before trying again. [HELP-CARD-01]"}
 
     monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", completion)
     result = copilot.respond(
@@ -330,7 +330,7 @@ def test_nvidia_nim_tool_call_normalizes_reference_format(monkeypatch, tmp_path)
                 "name": "lookup_demo_transaction",
                 "arguments": json.dumps({"reference": " tx-card-001 "}),
             }}]}
-        return {"content": "If it is frozen, review the in-app unfreeze option. [demo-card-01]"}
+        return {"content": "If it is frozen, follow the in-app steps to unfreeze it before trying again. [HELP-CARD-01]"}
 
     monkeypatch.setattr("fintech_support.copilot._request_nvidia_message", completion)
     result = copilot.respond(
@@ -403,14 +403,14 @@ def test_invalid_reference_fails_before_nvidia_nim_call(monkeypatch, tmp_path):
 
 def test_rejected_generation_falls_back_and_preserves_audit(monkeypatch, tmp_path):
     copilot = make_tool_copilot(tmp_path, "pending_transfer")
-    invented = "Your transfer is completed for EUR 500. [demo-transfer-01]"
+    invented = "Your transfer is completed for EUR 500. [HELP-TRANSFER-01]"
     monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", lambda *args: invented)
     result = copilot.respond("My transfer TX-TRF-001 is pending", llm_model="test", llm_api_key="test")
     assert result.status == "grounding_fallback"
     assert result.generated_answer == invented
     assert result.grounding_issues
     assert "EUR 500" not in result.answer
-    assert "status=pending" in result.answer
+    assert "Transfer TX-TRF-001 is pending." in result.answer
 
 
 def test_not_found_does_not_ask_llm_to_infer_record(monkeypatch, tmp_path):
@@ -422,7 +422,7 @@ def test_not_found_does_not_ask_llm_to_infer_record(monkeypatch, tmp_path):
     monkeypatch.setattr("fintech_support.copilot._request_nvidia_completion", forbidden)
     result = copilot.respond("My transfer TX-TRF-999 is pending", llm_model="test", llm_api_key="test")
     assert result.tool_result.found is False
-    assert "no demo record" in result.answer
+    assert "No matching transfer was found" in result.answer
 
 
 def test_explicit_reference_cannot_override_different_question_reference(tmp_path):
