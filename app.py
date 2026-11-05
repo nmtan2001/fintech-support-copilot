@@ -60,7 +60,7 @@ def load_demo_tools():
 def main():
     st.set_page_config(page_title="Fintech Support Copilot", layout="centered")
     st.title("Fintech Customer Support Copilot")
-    st.warning("Academic prototype with synthetic policies and records. No access to real bank accounts or transactions.")
+    st.caption("Academic prototype · fictional help articles and sample records · no live account access")
 
     transformer_downloaded = (ROOT / "outputs/distilbert/model/config.json").is_file()
     model_id = get_setting("HF_MODEL_ID", DEFAULT_HF_MODEL_ID)
@@ -116,9 +116,9 @@ def main():
         max_chars=2000,
     )
     if llm_select_tool:
-        st.caption("Include TX-CARD-001, TX-TRF-001, or CARD-001 in a supported question to trigger a read-only demo lookup.")
+        st.caption("Include a reference such as TX-CARD-001, TX-TRF-001, or CARD-001 to check its status.")
     elif not use_llm:
-        st.caption("Include a synthetic reference such as TX-CARD-001 to use the local read-only demo lookup.")
+        st.caption("Include a reference such as TX-CARD-001 to check its status.")
     if not st.button("Get support", type="primary"):
         return
 
@@ -140,28 +140,50 @@ def main():
             return
         raise
 
-    st.subheader("Classification")
-    st.write(f"Intent: `{result.intent}`")
-    st.write(f"Model confidence: {result.confidence:.1%} (uncalibrated)")
-    st.subheader("Suggested response")
-    st.write(result.answer)
-    if result.status != "answered":
-        st.info(f"Fallback reason: {result.status}")
+    st.subheader("Issue identified")
+    st.write(result.intent.replace("_", " ").capitalize())
+    with st.expander("Model details"):
+        st.write(f"Intent label: `{result.intent}`")
+        st.write(f"Model confidence: {result.confidence:.1%} (uncalibrated)")
+
+    st.subheader("Support response")
+    support_answer = (
+        result.generated_answer
+        if result.generation_status == "accepted" and result.generated_answer
+        else result.answer
+    )
+    if result.tool_result:
+        lookup_text = result.tool_result.render()
+        if support_answer.startswith(lookup_text):
+            support_answer = support_answer[len(lookup_text):].lstrip()
+    st.write(support_answer)
+    status_notices = {
+        "generation_fallback": "The generated reply was unavailable. Showing guidance from the help articles.",
+        "grounding_fallback": "The generated reply could not be verified. Showing guidance from the help articles.",
+        "low_confidence": "I could not confidently identify the issue. Please contact support for help.",
+    }
+    if result.status in status_notices:
+        st.info(status_notices[result.status])
     if result.grounding_issues:
-        st.caption("NVIDIA NIM generation details: " + "; ".join(result.grounding_issues))
+        with st.expander("Response diagnostics"):
+            st.caption("; ".join(result.grounding_issues))
     if llm_select_tool and result.tool_result is None:
-        st.info("No lookup was performed. Include a supported synthetic reference in the question to trigger it.")
+        st.info("No status check was performed. Include a supported reference in the question to trigger it.")
 
     if result.tool_result:
-        st.subheader("Read-only demo tool call")
-        st.write(f"Tool: `{result.tool_result.name}`")
-        st.caption(f"Routing: {result.tool_routing}")
+        st.subheader("Account status check")
+        lookup_type = "Card status" if result.tool_result.name == "lookup_demo_card" else "Transaction status"
+        route_label = {
+            "nvidia_nim_function_call": "Selected using NVIDIA function calling",
+            "intent_router": "Selected using the intent classifier",
+        }.get(result.tool_routing, "")
+        st.caption(f"{lookup_type} · {route_label}" if route_label else lookup_type)
         st.write(result.tool_result.render())
 
     if result.retrieved:
-        st.subheader("Retrieved demo FAQ sources")
+        st.subheader("Relevant help articles")
         for hit in result.retrieved:
-            with st.expander(f"[{hit.faq.id}] {hit.faq.title} (similarity {hit.score:.2f})"):
+            with st.expander(f"[{hit.faq.id}] {hit.faq.title}"):
                 st.write(hit.faq.content)
                 st.caption(hit.faq.source)
 
