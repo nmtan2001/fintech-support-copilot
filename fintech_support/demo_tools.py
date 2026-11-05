@@ -37,12 +37,37 @@ class ToolResult:
             raise RuntimeError("Invalid tool result for the authorized demo lookup")
 
     def render(self) -> str:
-        if not self.found:
-            return f"Synthetic lookup: no demo record found for {self.reference}."
-        return (
-            f"Synthetic lookup for {self.reference}: status={self.status}, "
-            f"reason_code={self.reason_code}. This is a simulated record, not a real account."
+        subject = (
+            "Card" if self.name == "lookup_demo_card"
+            else "Card payment" if self.reference.startswith("TX-CARD-")
+            else "Transfer"
         )
+        if not self.found:
+            return f"No matching {subject.lower()} was found for {self.reference}."
+
+        status_phrases = {
+            "declined": "was declined",
+            "pending": "is pending",
+            "completed": "is complete",
+            "failed": "failed",
+            "approved": "was approved",
+            "frozen": "is frozen",
+            "active": "is active",
+            "blocked": "is blocked",
+        }
+        message = f"{subject} {self.reference} {status_phrases.get(self.status, self.status)}."
+        reason_labels = {
+            "CARD_FROZEN": "the card was frozen",
+            "INSUFFICIENT_FUNDS": "the available balance was insufficient",
+            "SPENDING_LIMIT": "a spending limit was reached",
+            "MERCHANT_RESTRICTION": "the merchant was restricted",
+            "ADDITIONAL_REVIEW": "additional review is required",
+            "INVALID_RECIPIENT": "the recipient details could not be verified",
+        }
+        reason = reason_labels.get(self.reason_code) if self.name != "lookup_demo_card" else None
+        if reason:
+            message += f" Reason: {reason}."
+        return message
 
 
 def extract_reference(question: str) -> str | None:
