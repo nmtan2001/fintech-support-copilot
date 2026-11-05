@@ -6,7 +6,7 @@ import random
 import re
 import socket
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, is_dataclass
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -398,9 +398,15 @@ class SupportCopilot:
             else:
                 tool_routing = "intent_router"
             tool_result = self.tools.call(prediction.intent, reference)
-            if not isinstance(tool_result, ToolResult):
-                raise RuntimeError("Missing tool result for the authorized demo lookup")
-            tool_result.validate_for(prediction.intent, reference)
+            if tool_result is None:
+                raise RuntimeError(
+                    "The authorized demo lookup returned no result "
+                    f"(intent={prediction.intent}, reference={reference})"
+                )
+            validate_result = getattr(tool_result, "validate_for", None)
+            if not is_dataclass(tool_result) or not callable(validate_result):
+                raise RuntimeError("The authorized demo lookup returned a malformed result")
+            validate_result(prediction.intent, reference)
         if not hits:
             if tool_result is None:
                 return SupportResult(prediction.intent, prediction.confidence, FALLBACK, (), "unsupported_intent")
