@@ -105,3 +105,34 @@ runs:
       with:
         name: container-sbom
         path: sbom.cdx.json
+
+    - name: Create disposable Kubernetes cluster
+      uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
+      with:
+        cluster_name: copilot-ci
+        version: v0.30.0
+        node_image: kindest/node:v1.34.0@sha256:7416a61b42b1662ca6ca89f02028ac133a309a2a30ba309614e8ec94d976dc5a
+
+    - name: Verify Kubernetes rollout and recovery
+      shell: bash
+      env:
+        IMAGE: ${{ steps.metadata.outputs.image }}:${{ steps.metadata.outputs.tag }}
+        APP_VERSION: ${{ steps.metadata.outputs.app_version }}
+        APP_COMMIT: ${{ github.sha }}
+        HF_TOKEN: ${{ inputs.hf-token }}
+      run: |
+        kind load docker-image "$IMAGE" --name copilot-ci
+        bash scripts/cluster_smoke.sh
+
+    - name: Inspect Kubernetes failure
+      if: failure()
+      shell: bash
+      run: |
+        kubectl get pods -n fintech-support -o wide || true
+        kubectl describe pods -n fintech-support || true
+        kubectl logs -n fintech-support -l app.kubernetes.io/name=fintech-support-copilot --tail=100 || true
+
+    - name: Delete disposable Kubernetes cluster
+      if: always()
+      shell: bash
+      run: kind delete cluster --name copilot-ci

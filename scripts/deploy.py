@@ -1,6 +1,8 @@
 """Apply an immutable release; restore previous resources if verification fails."""
 import argparse
+import hashlib
 import json
+import socket
 import subprocess
 from pathlib import Path
 
@@ -29,8 +31,11 @@ def snapshot(kind):
 
 
 def check_service(version, commit):
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        port = listener.getsockname()[1]
     process = subprocess.Popen(
-        ["kubectl", "-n", NAMESPACE, "port-forward", "service/" + NAME, "18000:80"],
+        ["kubectl", "-n", NAMESPACE, "port-forward", "service/" + NAME, f"{port}:80"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
     try:
@@ -39,7 +44,7 @@ def check_service(version, commit):
         from urllib.error import URLError
         for attempt in range(30):
             try:
-                verify("http://127.0.0.1:18000", version, commit)
+                verify(f"http://127.0.0.1:{port}", version, commit)
                 return
             except (URLError, TimeoutError):
                 if process.poll() is not None or attempt == 29:
@@ -60,6 +65,9 @@ def deploy(image, version, commit):
     previous = {kind: snapshot(kind) for kind in ("configmap", "deployment", "service")}
     deployment = json.loads(kubectl("create", "--dry-run=client", "-f", "k8s/deployment.yaml", "-o", "json"))
     deployment["spec"]["template"]["spec"]["containers"][0]["image"] = image
+    deployment["spec"]["template"].setdefault("metadata", {}).setdefault("annotations", {})["checksum/config"] = (
+        hashlib.sha256(Path("k8s/configmap.yaml").read_bytes()).hexdigest()
+    )
     deployment["metadata"].setdefault("annotations", {}).update({
         "copilot/version": version, "copilot/commit": commit})
     # Snapshot before mutation. Rollback restores config as well as the pod template.
@@ -70,6 +78,13 @@ def deploy(image, version, commit):
         kubectl("rollout", "status", "deployment/" + NAME, "--timeout=12m")
         check_service(version, commit)
     except Exception:
+        for args in (("get", "pods", "-o", "wide"),
+                     ("get", "events", "--sort-by=.lastTimestamp"),
+                     ("logs", "-l", "app.kubernetes.io/name=" + NAME, "--tail=100", "--prefix")):
+            try:
+                print(kubectl(*args), flush=True)
+            except subprocess.CalledProcessError:
+                pass
         if previous["deployment"] is not None:
             for document in previous.values():
                 if document is not None:
