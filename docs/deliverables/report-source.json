@@ -1,0 +1,63 @@
+{
+  "title": "Fintech Support Copilot",
+  "subtitle": "DevOps delivery and reproducible model serving",
+  "status": "Engineering validation snapshot \u2014 release evidence still in progress",
+  "sections": [
+    {
+      "title": "1. Scope and engineering objective",
+      "paragraphs": [
+        "The project serves a fine-tuned DistilBERT classifier for 77 banking-support intents through FastAPI. It connects supported intents to authored help text and read-only lookups over 30 synthetic banking records. A Streamlit workbench exposes the support workflow. Optional answer generation and tool selection use NVIDIA NIM remotely; this project does not self-host a generative LLM or connect to real bank accounts.",
+        "The infrastructure assignment emphasizes a complete, repeatable development and release workflow. The engineering objective is to make tested source, the container image, configuration and model artifact traceable to the running service, and to reject or recover failed changes. Kubernetes deployment alone is insufficient evidence of either delivery reliability or model quality.",
+        "The DevOps layer covers pull requests, application tests, container construction, vulnerability scanning, registry publication, rolling deployment and operational diagnostics. The MLOps layer adds a pinned private model revision, a verified model-weight fingerprint, a versioned benchmark, explicit model acceptance thresholds and inference outcome monitoring. There is no automatic retraining or validated production drift detector."
+      ]
+    },
+    {
+      "title": "2. Architecture and artifact identity",
+      "paragraphs": [
+        "A pull request first runs application and HTTP tests and Ruff. The candidate image is constructed from a digest-pinned Python 3.11 base and a hashed transitive dependency lock. Trivy scans the resulting image. The exact image is started and checked over HTTP, then the real classifier is evaluated before publication. A CycloneDX SBOM and model report are retained as CI artifacts.",
+        "Authorized main or release-tag pushes publish a versioned GHCR image. Delivery receives its registry digest rather than resolving a mutable tag at deployment time. Only the current main commit may deploy. Deployment jobs share a concurrency group. The deployment code snapshots previous resources, applies the candidate, waits for rollout, and verifies the running release identity and a support request.",
+        "The identity chain comprises the application source commit, semantic version, container digest, model repository commit, model weight SHA-256, benchmark source revision and benchmark checksum. The model-manifest.json file records model and evaluation identity. GET /version reports application and configured model identity. ConfigMap content is hashed into the Pod template so configuration changes cause a rollout."
+      ]
+    },
+    {
+      "title": "3. Quality gates and software supply chain",
+      "paragraphs": [
+        "HTTP tests exercise routing, request validation, readiness before/after startup, startup failure and sanitized service-unavailable responses. Existing tests cover classification, retrieval, grounding, read-only tool validation and evaluation denominators. Release-verifier tests reject stale version/commit identities, incorrect synthetic results and transient startup connection resets. Deployment tests exercise apply, rollout and verification failure recovery.",
+        "The first real hosted scan identified six fixable HIGH-severity findings, including Transformers and vendored build tooling. The scan correctly stopped the release path. Patched dependencies were resolved into new hashed lockfiles. A subsequent scan passed; a later startup transport failure was reproduced and corrected separately. No vulnerability exceptions were added to bypass the gate.",
+        "Third-party workflow actions are pinned to official commit SHAs. The runtime image runs as UID 10001, with a read-only root filesystem, dropped Linux capabilities and no privilege escalation. Private model access is passed at runtime, not through image build arguments. GitHub secrets and namespace-scoped Kubernetes Secrets hold credentials; the repository contains only example placeholders."
+      ]
+    },
+    {
+      "title": "4. Model evaluation and acceptance",
+      "paragraphs": [
+        "The private DistilBERT checkpoint is pinned to Hugging Face revision 22b8cf5377501f09520f8655d2cd42096c23cf3f. The local safetensors weight SHA-256 was compared with the remote pinned artifact and matched. A real CPU container reproduced 92.435% accuracy and 92.439% Macro-F1 across all 3,080 official BANKING77 test examples, confirming the previously reported 92.44% rounded result.",
+        "The official test CSV is pinned to its upstream source commit and SHA-256. The model gate checks file integrity and example count before inference and requires at least 90% accuracy and Macro-F1. This benchmark is distinct from the hand-authored workflow fixtures. It was not used to modify the deployed checkpoint during this hardening work.",
+        "The separate 48-case deterministic workflow evaluation passed 38 cases. It reported 79.5% intent accuracy over classified cases and 100% delivered extractive faithfulness. Some cases are oracle/component scenarios, including nonsense text with a placeholder intent, so their aggregate intent accuracy is not a suitable classifier benchmark. The report retains these outcomes without relabeling failed cases. Workflow acceptance separately requires 75% task success and complete delivered extractive grounding. These small synthetic results do not establish live LLM quality or real financial-support suitability."
+      ]
+    },
+    {
+      "title": "5. Kubernetes deployment and recovery",
+      "paragraphs": [
+        "The Deployment requests two replicas with RollingUpdate, maxUnavailable zero and one surge replica. It defines CPU, memory and ephemeral-storage requests and limits; startup, readiness and liveness probes; non-root execution; a read-only root filesystem; and a writable temporary volume for model cache and synthetic SQLite state. A ClusterIP Service exposes the API inside the cluster. No public ingress is provisioned by default.",
+        "Before mutation, the delivery script saves the Deployment, ConfigMap and Service while removing server-owned fields. It deploys an image digest, waits for rollout and checks readiness, exact application identity, FAQ data, a synthetic transaction and a real POST /support request through a Service-selected Pod. If application or rollout verification fails, it collects diagnostics, restores previous resources, waits for recovery and checks the previous identity when available. The CI job remains failed even when recovery succeeds.",
+        "A namespace-scoped deployer Role avoids giving CI cluster-admin privileges. Namespace and RBAC bootstrap occur once with an administrator. Private clusters require a runner inside a reachable network. The ephemeral CI cluster separately tests two-replica readiness, an intentionally invalid image and restoration. This integration check does not replace an actual long-lived delivery environment or evidence of three application releases."
+      ]
+    },
+    {
+      "title": "6. Observability and performance",
+      "paragraphs": [
+        "The API generates an X-Request-ID for each response and emits structured request events with method, route template, status and elapsed time. Application request logs omit questions, request bodies, query strings and credentials. Prometheus counters track request outcomes and support intent/status; latency and uncalibrated confidence are histograms. Labels use route templates rather than record references to prevent uncontrolled cardinality and disclosure of identifiers.",
+        "The importable Grafana dashboard includes request rate, HTTP failure ratio, support p95 latency, intent mix, support outcomes and mean uncalibrated confidence. Monitoring configuration and PromQL examples are provided. Scraping each Pod preserves separate counter series; scraping only a Service can merge different replicas' counters incorrectly.",
+        "The bounded load utility reports failures, throughput and p50/p95 latency. The hosted CI sample completed 20 of 20 requests at concurrency two, approximately 72.75 requests/second, with p50 27.53 ms and p95 32.24 ms. This is a short warm synthetic sample on a hosted runner, not a production SLA or a capacity claim. Further measurements must retain hardware, resource limits and repeated concurrency levels. Confidence or intent-mix changes require investigation and labeled evaluation rather than automatic retraining."
+      ]
+    },
+    {
+      "title": "7. Evidence, demonstration and limitations",
+      "paragraphs": [
+        "Hosted CI run 44111215418 passed the exact locked Python 3.11 tests and lint, the patched vulnerability scan, real-container verification, the full BANKING77 model gate, a small load sample, and an isolated Kubernetes rollout/recovery check. A genuine failed-CI regression and its corrected run are retained. The local package builds as a wheel and the local container reproduced the official classifier metrics.",
+        "A genuine failing regression revision, ca18c6bdd16902d523275d66aaf98c3946874bd5, is preserved in Git history. Its PR run 44107605890 failed the test job and skipped container build, publication and deployment. The fix returns a sanitized 503 for an unavailable synthetic lookup and keeps the request identifier. Draft PR #1 contains the hardening changes and their subsequent CI iterations.",
+        "The remaining practical assessment needs verified v1.0.0, v1.1.0 and v1.2.0 releases with distinct source changes, PRs, workflow URLs, registry digests, Kubernetes rollouts and live version responses. A live change must traverse the same pipeline during evaluation. Original reports and slides are preserved as historical submissions. This snapshot deliberately does not invent release history, long-lived deployment success, public availability or completed monitoring experiments."
+      ]
+    }
+  ]
+}

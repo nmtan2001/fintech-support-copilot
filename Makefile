@@ -9,7 +9,7 @@ test:
 	$(PYTHON) -m pytest -q
 
 lint:
-	$(PYTHON) -m ruff check api.py app.py fintech_support scripts tests/test_api_http.py tests/test_release_verification.py tests/test_deployment.py tests/test_model_gate.py
+	$(PYTHON) -m ruff check api.py app.py fintech_support scripts tests/test_api_http.py tests/test_release_verification.py tests/test_deployment.py tests/test_model_gate.py tests/test_credentials.py
 
 check: lint test
 

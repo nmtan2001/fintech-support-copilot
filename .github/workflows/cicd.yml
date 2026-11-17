@@ -40,7 +40,7 @@ jobs:
         run: python -m pytest -q
 
       - name: Run Ruff checks
-        run: python -m ruff check api.py app.py fintech_support scripts tests/test_api_http.py tests/test_release_verification.py tests/test_deployment.py
+        run: python -m ruff check api.py app.py fintech_support scripts tests/test_api_http.py tests/test_release_verification.py tests/test_deployment.py tests/test_credentials.py
 
   container-check:
     name: Container build and scan

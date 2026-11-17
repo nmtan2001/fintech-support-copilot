@@ -195,3 +195,7 @@ or prove data drift.
 Keep original training reports and course submissions as historical artifacts.
 The CI/CD assessment needs fresh evidence for v1.0.0, v1.1.0, v1.2.0 and a failed
 CI revision; earlier AI-course screenshots are not substitutes.
+
+For expiring credentials, temporary runners and rebuilding the local environment,
+use [the reproduction and renewal guide](docs/reproduce-and-renew.md) and
+[the recorded runtime state](docs/runtime-state.json).

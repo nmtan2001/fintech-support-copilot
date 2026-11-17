@@ -30,3 +30,5 @@ slide-deck/
 
 build/
 *.egg-info/
+
+.runtime/
