@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import re
 import socket
 import subprocess
 from pathlib import Path
@@ -46,7 +47,7 @@ def check_service(version, commit):
             try:
                 verify(f"http://127.0.0.1:{port}", version, commit)
                 return
-            except (URLError, TimeoutError):
+            except (URLError, TimeoutError, ConnectionError):
                 if process.poll() is not None or attempt == 29:
                     raise
                 time.sleep(2)
@@ -60,7 +61,7 @@ def check_service(version, commit):
 
 
 def deploy(image, version, commit):
-    if "@sha256:" not in image:
+    if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9./:_-]*@sha256:[a-f0-9]{64}", image):
         raise ValueError("Deployment requires an image digest")
     previous = {kind: snapshot(kind) for kind in ("configmap", "deployment", "service")}
     deployment = json.loads(kubectl("create", "--dry-run=client", "-f", "k8s/deployment.yaml", "-o", "json"))

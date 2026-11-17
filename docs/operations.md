@@ -23,8 +23,8 @@ Runtime credentials are not baked into the image. The model cache is ephemeral;
 first startup depends on Hugging Face availability and may take several minutes.
 
 Run python3 -m scripts.evaluate_release inside the container and retain
-/tmp/model-evaluation.json. Its metrics cover small authored fixtures, not live
-traffic, real financial data or live LLM quality. Thresholds live with the model
+/tmp/model-evaluation.json. Its report separates the official BANKING77 classification benchmark from small
+authored workflow fixtures; neither measures live traffic or live LLM quality. Thresholds live with the model
 identity in model-manifest.json. Changing a threshold requires code review.
 
 ## Cluster bootstrap (administrator, once)

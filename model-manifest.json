@@ -10,7 +10,19 @@
     "Only four intents have record lookup support"
   ],
   "release_thresholds": {
-    "accuracy": 0.85,
+    "accuracy": 0.9,
+    "macro_f1": 0.9
+  },
+  "weights_sha256": "145d442cb16703b2fc1f2aa45c829110a7de04df9b97eabe2119786e4108299c",
+  "benchmark": {
+    "path": "data/evaluation/banking77_test.csv",
+    "source_url": "https://raw.githubusercontent.com/PolyAI-LDN/task-specific-datasets/9d081458ff52e53cf7e848f414e6e9344e4e6696/banking_data/test.csv",
+    "sha256": "d12d6e3bc4c3103966ae786dc435913c0c563dfa328f5a3646d0e62cfeeb474d",
+    "examples": 3080,
+    "license": "CC BY 4.0",
+    "attribution": "PolyAI BANKING77; Casanueva et al., Efficient Intent Detection with Dual Sentence Encoders (2020)"
+  },
+  "workflow_thresholds": {
     "task_success_rate": 0.75,
     "delivered_faithfulness": 1.0
   }

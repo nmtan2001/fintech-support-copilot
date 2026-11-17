@@ -143,7 +143,7 @@ jobs:
       - name: Set up kubectl
         uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4
         with:
-          version: ${{ vars.KUBECTL_VERSION || 'latest' }}
+          version: ${{ vars.KUBECTL_VERSION || 'v1.34.0' }}
 
       - name: Configure cluster access
         shell: bash

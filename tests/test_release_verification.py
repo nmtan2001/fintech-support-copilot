@@ -45,3 +45,20 @@ def test_rejects_broken_support_lookup(service):
     service["/support"]["tool_result"]["reason_code"] = "WRONG"
     with pytest.raises(AssertionError, match="Support lookup failed"):
         verify("http://localhost", "1.0.0", "abc123")
+
+
+def test_startup_connection_reset_is_retried(monkeypatch):
+    import sys
+    from scripts import verify_release
+
+    calls = []
+
+    def startup(*args):
+        calls.append(args)
+        if len(calls) == 1:
+            raise ConnectionResetError("container port is starting")
+    monkeypatch.setattr(verify_release, "verify", startup)
+    monkeypatch.setattr(verify_release.time, "sleep", lambda _: None)
+    monkeypatch.setattr(sys, "argv", ["verify", "--version", "1.0.0", "--commit", "abc", "--wait-seconds", "1"])
+    verify_release.main()
+    assert len(calls) == 2

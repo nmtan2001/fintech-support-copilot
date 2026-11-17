@@ -25,9 +25,13 @@ HTTP errors retry during startup; incorrect identity or content fails immediatel
 The Kubernetes port-forward checks a Service-selected pod, not public ingress or
 every replica individually. Rollout status separately checks the Deployment.
 
-The model gate tests only the authored fixtures. Its accuracy and task-success
-thresholds are project acceptance criteria, not estimates of real bank-support
-quality. The original BANKING77 benchmark remains a separate model evaluation.
+The classifier gate uses all 3,080 official BANKING77 test examples, pinned by
+source commit and SHA-256, with 90% minimum accuracy and Macro-F1. The authored
+workflow suite is reported separately: it includes oracle/component scenarios
+(e.g. nonsense input assigned a placeholder intent) and is not a classification
+benchmark. Workflow task success must reach 75% and delivered extractive
+faithfulness 100%. These are project acceptance criteria, not real-bank quality
+estimates. Existing benchmark data was not used to tune the deployed checkpoint.
 A config update changing model revision changes the served model even with the
 same application image: retain the model manifest and ConfigMap with each release.
 

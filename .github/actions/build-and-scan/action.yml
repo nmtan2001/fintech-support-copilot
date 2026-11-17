@@ -71,6 +71,10 @@ runs:
         HF_TOKEN: ${{ inputs.hf-token }}
       run: |
         set -euo pipefail
+        if [[ -z "$HF_TOKEN" ]]; then
+          echo "HF_TOKEN is required to test the private checkpoint." >&2
+          exit 1
+        fi
         export HF_MODEL_REVISION=22b8cf5377501f09520f8655d2cd42096c23cf3f
         container_id=$(docker run -d -e HF_TOKEN -e HF_MODEL_REVISION -p 127.0.0.1:18001:8000 "$IMAGE_NAME:$IMAGE_TAG")
         cleanup() {
@@ -120,6 +124,7 @@ runs:
       with:
         cluster_name: copilot-ci
         version: v0.30.0
+        kubectl_version: v1.34.0
         node_image: kindest/node:v1.34.0@sha256:7416a61b42b1662ca6ca89f02028ac133a309a2a30ba309614e8ec94d976dc5a
 
     - name: Verify Kubernetes rollout and recovery

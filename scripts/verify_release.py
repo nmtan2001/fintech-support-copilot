@@ -42,7 +42,7 @@ def main():
         try:
             verify(args.url, args.version, args.commit)
             break
-        except (URLError, TimeoutError):
+        except (URLError, TimeoutError, ConnectionError):
             if time.monotonic() >= deadline:
                 raise
             time.sleep(2)

@@ -8,7 +8,7 @@ Store sanitized evidence in docs/evidence; never save tokens or kubeconfig files
 | Application functions, health and version | API + HTTP tests | Running endpoint responses |
 | Branch and pull request workflow | feature branch + workflow | PR URL and required checks |
 | Versioned Docker images | publish job, SHA/semantic tags | GHCR tags and image digests |
-| Test failure blocks publication | job dependencies | Intentional failing PR run and its corrected run |
+| Test failure blocks publication | job dependencies | Failing run 44107605890 recorded in docs/bugs/demo-lookup-unavailable.md; corrected run pending |
 | Kubernetes configuration | k8s manifests, scoped RBAC | Two ready replicas, Service, probes, resource settings |
 | Automated delivery | digest-based deploy + verification | Successful Actions deploy and live version |
 | Recovery | resource snapshots + restore | Failed rollout followed by verified previous release |
