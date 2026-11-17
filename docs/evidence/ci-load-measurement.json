@@ -1,0 +1,11 @@
+{
+  "requests": 20,
+  "concurrency": 2,
+  "successful": 20,
+  "failed": 0,
+  "requests_per_second": 72.75434660384663,
+  "p50_seconds": 0.027526685000012208,
+  "p95_seconds": 0.03224141899997335,
+  "scope": "Small warm synthetic CI sample; not a production SLA",
+  "workflow_run_url": "https://github.com/nmtan2001/fintech-support-copilot/actions/runs/44111215418"
+}

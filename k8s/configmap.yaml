@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fintech-support-copilot
+  namespace: fintech-support
+data:
+  HF_MODEL_ID: nmtan2001/fintech-support-distilbert
+  HF_MODEL_REVISION: 22b8cf5377501f09520f8655d2cd42096c23cf3f
+  HF_HOME: /tmp/huggingface
+  DEMO_DATABASE_PATH: /tmp/state/demo.sqlite
+  TOKENIZERS_PARALLELISM: "false"

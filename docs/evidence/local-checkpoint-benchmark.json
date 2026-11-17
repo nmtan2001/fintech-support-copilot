@@ -1,0 +1,15 @@
+{
+  "examples": 3080,
+  "metrics": {
+    "accuracy": 0.9243506493506494,
+    "macro_f1": 0.9243878917715344
+  },
+  "scope": "Local container validation of the original checkpoint; not a completed release",
+  "model_revision": "22b8cf5377501f09520f8655d2cd42096c23cf3f",
+  "weights_sha256": "145d442cb16703b2fc1f2aa45c829110a7de04df9b97eabe2119786e4108299c",
+  "benchmark_sha256": "d12d6e3bc4c3103966ae786dc435913c0c563dfa328f5a3646d0e62cfeeb474d",
+  "cpu_limit": 2,
+  "memory_limit": "3GiB",
+  "inference_runtime": "Transformers 4.57.1; Torch 2.11.0+cpu",
+  "date": "2026-11-17"
+}

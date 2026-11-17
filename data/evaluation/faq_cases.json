@@ -20,5 +20,9 @@
   {"question": "My card disappeared. How do I get a replacement?", "intent": "lost_or_stolen_card", "expected_id": "HELP-LOST-CARD-02"},
   {"question": "What are delivery fees for a replacement card after losing it?", "intent": "lost_or_stolen_card", "expected_id": "HELP-LOST-CARD-02"},
   {"question": "My stolen card has suspicious transactions I didn't make", "intent": "lost_or_stolen_card", "expected_id": "HELP-LOST-CARD-03"},
-  {"question": "Someone used my lost card without permission, how do I report it?", "intent": "lost_or_stolen_card", "expected_id": "HELP-LOST-CARD-03"}
+  {"question": "Someone used my lost card without permission, how do I report it?", "intent": "lost_or_stolen_card", "expected_id": "HELP-LOST-CARD-03"},
+  {"question": "What will the weather be like in Budapest tomorrow?", "intent": "lost_or_stolen_card", "expected_id": null},
+  {"question": "Can you recommend a restaurant near the city centre?", "intent": "declined_card_payment", "expected_id": null},
+  {"question": "How do I reset the password for my email account?", "intent": "pending_transfer", "expected_id": null},
+  {"question": "What documents do I need to apply for a mortgage?", "intent": "transfer_not_received_by_recipient", "expected_id": null}
 ]

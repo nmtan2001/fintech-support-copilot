@@ -2,6 +2,7 @@
 
 streamlit==1.62.0
 torch==2.11.0+cpu
-transformers==4.57.1
+transformers==5.23.0
 scikit-learn==1.7.2
+sentence-transformers==5.2.3
 joblib==1.5.3

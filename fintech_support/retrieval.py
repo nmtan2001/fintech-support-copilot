@@ -22,6 +22,8 @@ class FAQ:
 class Hit:
     faq: FAQ
     score: float
+    tfidf_score: float | None = None
+    semantic_score: float | None = None
 
 
 def load_faqs(path: Path) -> list[FAQ]:
@@ -49,22 +51,30 @@ def load_faqs(path: Path) -> list[FAQ]:
 
 
 class FAQRetriever:
+    SEMANTIC_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+    RRF_K = 60
+    HYBRID_SEMANTIC_FLOOR = 0.35
+
     def __init__(self, faqs: list[FAQ], *, backend: str = "tfidf"):
         if not faqs:
             raise ValueError("At least one FAQ entry is required")
+        if backend not in {"tfidf", "semantic", "hybrid"}:
+            raise ValueError(f"Unknown retrieval backend: {backend}")
         self.faqs = faqs
         self.backend = backend
         texts = [f"{faq.title}. {faq.content}" for faq in faqs]
-        if backend == "tfidf":
-            self.encoder = TfidfVectorizer(ngram_range=(1, 2), stop_words="english")
-            self.embeddings = self.encoder.fit_transform(texts)
-        elif backend == "semantic":
+        self.tfidf_encoder = None
+        self.tfidf_embeddings = None
+        self.semantic_encoder = None
+        self.semantic_embeddings = None
+        if backend in {"tfidf", "hybrid"}:
+            self.tfidf_encoder = TfidfVectorizer(ngram_range=(1, 2), stop_words="english")
+            self.tfidf_embeddings = self.tfidf_encoder.fit_transform(texts)
+        if backend in {"semantic", "hybrid"}:
             from sentence_transformers import SentenceTransformer
 
-            self.encoder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-            self.embeddings = self.encoder.encode(texts, normalize_embeddings=True)
-        else:
-            raise ValueError(f"Unknown retrieval backend: {backend}")
+            self.semantic_encoder = SentenceTransformer(self.SEMANTIC_MODEL)
+            self.semantic_embeddings = self.semantic_encoder.encode(texts, normalize_embeddings=True)
 
     def search(self, question: str, *, intent: str, top_k: int = 3) -> list[Hit]:
         if not question.strip():
@@ -74,15 +84,74 @@ class FAQRetriever:
         allowed = [i for i, faq in enumerate(self.faqs) if intent in faq.intents]
         if not allowed:
             return []
-        if self.backend == "tfidf":
-            query = self.encoder.transform([question])
-            scores = cosine_similarity(query, self.embeddings[allowed]).ravel()
-        else:
-            query = self.encoder.encode([question], normalize_embeddings=True)
-            scores = (query @ self.embeddings[allowed].T).ravel()
-        ranked = sorted(zip(allowed, scores), key=lambda pair: (-float(pair[1]), self.faqs[pair[0]].id))
+
+        tfidf_scores = None
+        semantic_scores = None
+        if self.tfidf_encoder is not None:
+            query = self.tfidf_encoder.transform([question])
+            tfidf_scores = cosine_similarity(query, self.tfidf_embeddings[allowed]).ravel()
+        if self.semantic_encoder is not None:
+            query = self.semantic_encoder.encode([question], normalize_embeddings=True)
+            semantic_scores = (query @ self.semantic_embeddings[allowed].T).ravel()
+
+        if self.backend == "hybrid":
+            ranked_tfidf = sorted(
+                range(len(allowed)),
+                key=lambda index: (-float(tfidf_scores[index]), self.faqs[allowed[index]].id),
+            )
+            ranked_semantic = sorted(
+                range(len(allowed)),
+                key=lambda index: (-float(semantic_scores[index]), self.faqs[allowed[index]].id),
+            )
+            tfidf_ranks = {index: rank for rank, index in enumerate(ranked_tfidf, start=1)}
+            semantic_ranks = {index: rank for rank, index in enumerate(ranked_semantic, start=1)}
+            candidates = [
+                index for index in range(len(allowed))
+                if (
+                    np.isfinite(tfidf_scores[index]) and tfidf_scores[index] > 0
+                ) or (
+                    np.isfinite(semantic_scores[index])
+                    and semantic_scores[index] >= self.HYBRID_SEMANTIC_FLOOR
+                )
+            ]
+            fusion_scores = {}
+            for index in candidates:
+                lexical_score = float(tfidf_scores[index])
+                semantic_score = float(semantic_scores[index])
+                lexical_contribution = (
+                    1 / (self.RRF_K + tfidf_ranks[index]) if lexical_score > 0 else 0
+                )
+                semantic_contribution = (
+                    1 / (self.RRF_K + semantic_ranks[index])
+                    if semantic_score >= self.HYBRID_SEMANTIC_FLOOR else 0
+                )
+                fusion_scores[index] = lexical_contribution + semantic_contribution
+            ranked = sorted(
+                candidates,
+                key=lambda index: (-fusion_scores[index], self.faqs[allowed[index]].id),
+            )
+            return [
+                Hit(
+                    self.faqs[allowed[index]],
+                    fusion_scores[index],
+                    float(tfidf_scores[index]),
+                    float(semantic_scores[index]),
+                )
+                for index in ranked[:top_k]
+            ]
+
+        scores = tfidf_scores if self.backend == "tfidf" else semantic_scores
+        ranked = sorted(
+            zip(allowed, scores),
+            key=lambda pair: (-float(pair[1]), self.faqs[pair[0]].id),
+        )
         return [
-            Hit(self.faqs[i], float(score))
-            for i, score in ranked[:top_k]
+            Hit(
+                self.faqs[index],
+                float(score),
+                float(score) if self.backend == "tfidf" else None,
+                float(score) if self.backend == "semantic" else None,
+            )
+            for index, score in ranked[:top_k]
             if np.isfinite(score) and score > 0
         ]

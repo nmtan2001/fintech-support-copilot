@@ -1,0 +1,42 @@
+# Apply once as a cluster administrator, after namespace.yaml.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: copilot-deployer
+  namespace: fintech-support
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: copilot-deployer
+  namespace: fintech-support
+rules:
+  - apiGroups: [apps]
+    resources: [deployments, replicasets]
+    verbs: [get, list, watch, create, update, patch]
+  - apiGroups: [""]
+    resources: [configmaps, services, secrets]
+    verbs: [get, create, update, patch]
+  - apiGroups: [""]
+    resources: [pods, events]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [pods/log]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [pods/portforward]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: copilot-deployer
+  namespace: fintech-support
+subjects:
+  - kind: ServiceAccount
+    name: copilot-deployer
+    namespace: fintech-support
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: copilot-deployer

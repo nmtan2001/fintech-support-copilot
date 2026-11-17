@@ -1,0 +1,37 @@
+{
+  "recorded_date": "2026-11-17",
+  "cluster": {
+    "name": "fintech-validation",
+    "kind_version": "v0.30.0",
+    "kubernetes_version": "v1.34.0",
+    "state": "running locally in Docker; not a managed production cluster",
+    "survival": "Requires Docker data to remain; deleting the kind cluster destroys it"
+  },
+  "deployer": {
+    "service_account": "copilot-deployer",
+    "namespace": "fintech-support",
+    "issued_utc": "2026-11-17T15:25:05+00:00",
+    "expires_utc": "2026-11-18T15:25:05+00:00",
+    "expires_budapest": "2026-11-18T16:25:05+01:00",
+    "secret": "kubernetes-demo/KUBECONFIG_CONTENT",
+    "renewal": "Generate a fresh scoped kubeconfig and replace the environment secret"
+  },
+  "runner": {
+    "name": "fintech-validation-deployer",
+    "label": "fintech-deploy",
+    "policy": "Temporary; remove registration after demonstration",
+    "state": "listening temporarily for trusted deployment jobs",
+    "version": "2.338.2",
+    "archive_sha256": "baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40"
+  },
+  "registry_token": {
+    "secret": "kubernetes-demo/GHCR_READ_TOKEN",
+    "expiry": "User-selected; encrypted secret does not expose expiration",
+    "renewal": "Create a classic PAT with read:packages and replace the environment secret"
+  },
+  "model_token": {
+    "secret": "repository/HF_TOKEN",
+    "expiry": "Unknown; check Hugging Face token settings",
+    "renewal": "Replace the read token for the private pinned repository"
+  }
+}

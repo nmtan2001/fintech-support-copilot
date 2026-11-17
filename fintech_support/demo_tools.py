@@ -32,7 +32,7 @@ class ToolResult:
             if self.found is True else self.status is None and self.reason_code is None
         )
         if (expected_name is None or self.name != expected_name or
-                self.reference != reference.strip().upper() or type(self.found) is not bool or
+                self.reference != reference.strip().upper() or not isinstance(self.found, bool) or
                 not valid_data):
             raise RuntimeError("Invalid tool result for the authorized demo lookup")
 
