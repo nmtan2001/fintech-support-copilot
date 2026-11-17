@@ -28,6 +28,10 @@ def verify(base_url: str, version: str, commit: str) -> None:
     assert body["answer"], "Support response is empty"
     assert body["intent"] == "declined_card_payment", "Unexpected support routing"
     assert body["tool_result"]["reason_code"] == "CARD_FROZEN", "Support lookup failed"
+    if tuple(int(part) for part in version.split(".")) >= (1, 1, 0):
+        batch = request("/classify/batch", {"questions": ["My card payment was declined"]})
+        assert batch["count"] == 1, "Batch classification count mismatch"
+        assert batch["predictions"][0]["intent"] == "declined_card_payment", "Batch classification failed"
 
 
 def main():

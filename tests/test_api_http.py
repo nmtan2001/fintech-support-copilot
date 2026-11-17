@@ -12,7 +12,12 @@ from fintech_support.retrieval import FAQRetriever, load_faqs
 def client(monkeypatch, tmp_path):
     class Classifier:
         def predict(self, question):
+            if question == "Where is my transfer":
+                return Prediction("pending_transfer", 0.83)
             return Prediction("declined_card_payment", 0.94)
+
+        def predict_many(self, questions, *, batch_size=16):
+            return [self.predict(question) for question in questions]
 
     database = tmp_path / "demo.sqlite"
     initialize_demo_database(database, api.ROOT / "data/transactions/demo_records.json")
@@ -114,3 +119,18 @@ def test_unavailable_demo_lookup_returns_sanitized_503(client, monkeypatch):
     assert response.status_code == 503
     assert "private database diagnostics" not in response.text
     assert response.headers["x-request-id"]
+
+
+def test_batch_classification_returns_model_identity(client):
+    response = client.post("/classify/batch", json={"questions": ["Card declined", "Where is my transfer"]})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 2
+    assert body["model_revision"] == api.MODEL_REVISION
+    assert [row["intent"] for row in body["predictions"]] == ["declined_card_payment", "pending_transfer"]
+    assert all("confidence_uncalibrated" in row for row in body["predictions"])
+
+
+@pytest.mark.parametrize("questions", [[], [" "], ["x" * 2001], ["x"] * 17])
+def test_batch_classification_rejects_invalid_input(client, questions):
+    assert client.post("/classify/batch", json={"questions": questions}).status_code == 422

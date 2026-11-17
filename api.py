@@ -10,10 +10,11 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from prometheus_client import CollectorRegistry, Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
 
 from fintech_support.copilot import (
     DEFAULT_NVIDIA_MODEL,
@@ -239,3 +240,23 @@ def support(payload: SupportRequest):
         "grounding_issues": list(result.grounding_issues),
         "synthetic_only": True,
     }
+
+
+BatchQuestion = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+
+
+class BatchClassificationRequest(BaseModel):
+    questions: list[BatchQuestion] = Field(min_length=1, max_length=16)
+
+
+@app.post("/classify/batch")
+def classify_batch(payload: BatchClassificationRequest):
+    """Classify up to sixteen questions in order, without generation or lookups."""
+    try:
+        predictions = get_copilot().classifier.predict_many(payload.questions, batch_size=16)
+    except (RuntimeError, FileNotFoundError, OSError) as exc:
+        LOGGER.exception("Batch classification failed")
+        raise HTTPException(status_code=503, detail="Classification service temporarily unavailable") from exc
+    return {"count": len(predictions), "predictions": [
+                {"intent": row.intent, "confidence_uncalibrated": row.confidence} for row in predictions],
+            "model_id": MODEL_ID, "model_revision": MODEL_REVISION, "synthetic_only": True}
