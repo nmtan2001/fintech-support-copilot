@@ -104,3 +104,13 @@ def test_metrics_use_route_templates_without_record_identifiers(client):
     metrics = client.get("/metrics").text
     assert 'route="/demo-status/{reference}"' in metrics
     assert "TX-CARD-001" not in metrics
+
+
+def test_unavailable_demo_lookup_returns_sanitized_503(client, monkeypatch):
+    def fail():
+        raise RuntimeError("private database diagnostics")
+    monkeypatch.setattr(api, "get_demo_tools", fail)
+    response = client.get("/demo-status/TX-CARD-001")
+    assert response.status_code == 503
+    assert "private database diagnostics" not in response.text
+    assert response.headers["x-request-id"]
