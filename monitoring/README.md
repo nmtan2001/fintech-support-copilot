@@ -24,3 +24,6 @@ Investigate sustained 5xx errors and latency against a measured load-test baseli
 A confidence or intent-distribution shift should trigger investigation and labeled
 evaluation, not automatic retraining. This project has no real customer labels
 or validated production drift detector.
+
+Import grafana-dashboard.json into Grafana and select a Prometheus datasource.
+It includes six service/model panels; no credentials are embedded.

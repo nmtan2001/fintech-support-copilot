@@ -4,10 +4,13 @@ joblib==1.5.3
 pandas==2.3.3
 scikit-learn==1.7.2
 torch==2.11.0+cpu
-transformers==4.57.1
+transformers==5.10.0
 
 requests>=2.32.4
 # Keep transitive network dependencies above known vulnerable legacy releases.
 urllib3>=2.6.3
 certifi>=2024.7.4
 idna>=3.10
+
+setuptools>=81,<82
+wheel>=0.46.2

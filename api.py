@@ -188,6 +188,9 @@ def demo_status(reference: str):
         result = get_demo_tools().call(intent, normalized)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except (RuntimeError, FileNotFoundError, OSError) as exc:
+        LOGGER.exception("Synthetic lookup failed")
+        raise HTTPException(status_code=503, detail="Lookup service temporarily unavailable") from exc
     if result is None:
         raise HTTPException(status_code=404, detail="No supported synthetic lookup was selected")
     return {**asdict(result), "synthetic_only": True}
