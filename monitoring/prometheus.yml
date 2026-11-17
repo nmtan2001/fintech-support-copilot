@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+scrape_configs:
+  - job_name: fintech-support-copilot
+    static_configs:
+      # Local example: first port-forward the Kubernetes Service to port 8000.
+      - targets: ["host.docker.internal:8000"]

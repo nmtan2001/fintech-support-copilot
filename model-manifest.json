@@ -1,0 +1,17 @@
+{
+  "model_id": "nmtan2001/fintech-support-distilbert",
+  "revision": "22b8cf5377501f09520f8655d2cd42096c23cf3f",
+  "task": "77-class banking support intent classification",
+  "format": "safetensors",
+  "evaluation_set": "data/evaluation/copilot_smoke_cases.json",
+  "limitations": [
+    "Synthetic workflows only",
+    "No live LLM quality guarantee",
+    "Only four intents have record lookup support"
+  ],
+  "release_thresholds": {
+    "accuracy": 0.85,
+    "task_success_rate": 0.75,
+    "delivered_faithfulness": 1.0
+  }
+}

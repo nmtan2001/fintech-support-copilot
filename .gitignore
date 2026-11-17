@@ -7,7 +7,16 @@ outputs/
 artifacts/
 .krun/
 .env
+.env.*
+!.env.example
 .streamlit/secrets.toml
 *.pyc
 krun_project/
 fintech-support-copilot-*.log
+k8s/secret*.yaml
+!k8s/secret.example.yaml
+
+release-evidence.json
+model-evaluation.json
+build/
+*.egg-info/

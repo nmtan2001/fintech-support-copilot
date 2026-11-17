@@ -1,0 +1,6 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fintech-support
+  labels:
+    app.kubernetes.io/part-of: fintech-support-copilot
