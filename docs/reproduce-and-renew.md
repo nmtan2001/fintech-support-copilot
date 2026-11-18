@@ -146,3 +146,9 @@ bearer-token kubeconfigs should use a private Linux filesystem. Re-export the
 kind administrator context only locally when renewal requires it, generate a
 new scoped token, upload only that scoped config, and delete the temporary admin
 file. A missing /tmp folder does not mean the Docker cluster was deleted.
+
+Documentation-only pushes under docs/ do not redeploy the application. Pull
+requests still run quality checks. This lets final evidence be updated without
+changing the running release identity or queuing a job after the temporary
+runner is removed. Functional source and configuration changes still trigger
+the full main-branch delivery path.
