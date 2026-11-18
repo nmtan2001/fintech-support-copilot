@@ -1,16 +1,6 @@
 FROM python:3.11-slim-bookworm@sha256:a83ba18aef0f865b1a4a611c2cf460fe446f2795673bbb9fe43be570439e3b39
 
-ARG APP_VERSION=dev
-ARG APP_COMMIT=unknown
-
-LABEL org.opencontainers.image.title="Fintech Support Copilot" \
-    org.opencontainers.image.revision=${APP_COMMIT} \
-    org.opencontainers.image.version=${APP_VERSION} \
-    org.opencontainers.image.source="https://github.com/nmtan2001/fintech-support-copilot"
-
-ENV APP_VERSION=${APP_VERSION} \
-    APP_COMMIT=${APP_COMMIT} \
-    HF_HOME=/tmp/huggingface \
+ENV HF_HOME=/tmp/huggingface \
     HF_HUB_DISABLE_TELEMETRY=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -23,6 +13,17 @@ WORKDIR /app
 COPY requirements-api.lock ./
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install --timeout 180 --retries 3 --require-hashes -r requirements-api.lock
+
+ARG APP_VERSION=dev
+ARG APP_COMMIT=unknown
+
+LABEL org.opencontainers.image.title="Fintech Support Copilot" \
+    org.opencontainers.image.revision=${APP_COMMIT} \
+    org.opencontainers.image.version=${APP_VERSION} \
+    org.opencontainers.image.source="https://github.com/nmtan2001/fintech-support-copilot"
+
+ENV APP_VERSION=${APP_VERSION} \
+    APP_COMMIT=${APP_COMMIT}
 
 COPY pyproject.toml README.md api.py VERSION model-manifest.json ./
 COPY fintech_support/ ./fintech_support/
