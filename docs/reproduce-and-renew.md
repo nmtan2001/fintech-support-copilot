@@ -9,7 +9,7 @@ always-on managed service. Docker must remain running for its application to run
 
 | Item | Lifetime / failure trigger | How to recover |
 | --- | --- | --- |
-| KUBECONFIG_CONTENT | Current scoped token expires 18 November 2026, 16:25:05 Budapest time (15:25:05 UTC) | Generate a new scoped kubeconfig and replace the environment secret |
+| KUBECONFIG_CONTENT | See deployer.expires_utc and deployer.expires_budapest in runtime-state.json | Generate a new scoped kubeconfig and replace the environment secret |
 | GHCR_READ_TOKEN | Expiry chosen when you created the classic PAT; encrypted secret does not expose it | Check GitHub Settings → Developer settings → Tokens (classic), create read:packages replacement, update the environment secret |
 | HF_TOKEN | Expiry/revocation controlled in your Hugging Face token settings; not visible here | Create a private-model read token and replace the repository secret |
 | Runner registration token | GitHub short-lived registration token; request just before setup | Request a new registration token; never reuse one from an old guide |
@@ -59,16 +59,18 @@ change system DNS or restart unrelated running containers as a first response.
 The deployer cannot create namespaces or administer the cluster. The administrator
 bootstraps RBAC once. Then run from the repository root:
 
-    python scripts/renew_cluster_credentials.py --admin-kubeconfig .runtime/admin-kubeconfig --output .runtime/deployer-kubeconfig --duration 24h --upload
+    python scripts/renew_cluster_credentials.py --admin-kubeconfig .runtime/admin-kubeconfig --output /tmp/fintech-deployer-kubeconfig --duration 24h --upload
 
 --upload explicitly transmits the scoped bearer-token kubeconfig to this repo's
 kubernetes-demo environment as KUBECONFIG_CONTENT. Omit it for local-only use.
-The script prints the actual expiry, never the token. Update runtime-state.json
+The script prints the actual expiry, never the token. Use a private Linux
+filesystem for credential files: Windows-mounted folders may not enforce chmod
+600, in which case renewal deliberately refuses to write a bearer token. Update runtime-state.json
 with that printed timestamp after renewal. A server can cap requested durations.
 Verify the permissions without printing any credential:
 
-    KUBECONFIG=.runtime/deployer-kubeconfig kubectl auth can-i patch deployments -n fintech-support
-    KUBECONFIG=.runtime/deployer-kubeconfig kubectl auth can-i create namespaces
+    KUBECONFIG=/tmp/fintech-deployer-kubeconfig kubectl auth can-i patch deployments -n fintech-support
+    KUBECONFIG=/tmp/fintech-deployer-kubeconfig kubectl auth can-i create namespaces
 
 The expected answers are yes and no respectively. Keep administrator credentials
 local. Remove scoped credential files when no longer needed.
@@ -89,7 +91,7 @@ cannot reach a private local cluster just because a kubeconfig exists.
 
 In repo Settings → Actions → Runners → New self-hosted runner, choose Linux x64.
 Download the official archive and verify its published SHA-256. Extract to a
-private directory such as .runtime/actions-runner. Run GitHub's generated
+private Linux directory such as "$HOME/.local/share/fintech-runner". Run GitHub's generated
 configuration command from that directory, with these additional choices:
 
     ./config.sh --url https://github.com/nmtan2001/fintech-support-copilot --token REGISTRATION_TOKEN --unattended --name fintech-validation-deployer --labels fintech-deploy --work _work
@@ -137,3 +139,10 @@ and bug-fix commits for v1.1.0 and v1.2.0. Never reuse a release tag.
 Delete the demonstration cluster only when you explicitly intend to remove the
 running application: kind delete cluster --name fintech-validation. That deletion
 is not part of a normal release or credential renewal.
+
+After a machine restart, start Docker Desktop first. Cached public tools and
+verified archives may live under ignored .runtime/, but runner credentials and
+bearer-token kubeconfigs should use a private Linux filesystem. Re-export the
+kind administrator context only locally when renewal requires it, generate a
+new scoped token, upload only that scoped config, and delete the temporary admin
+file. A missing /tmp folder does not mean the Docker cluster was deleted.

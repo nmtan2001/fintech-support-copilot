@@ -85,6 +85,7 @@ runs:
         trap cleanup EXIT
         python3 scripts/verify_release.py --url http://127.0.0.1:18001 \
           --version "$APP_VERSION" --commit "$GITHUB_SHA" --wait-seconds 600
+        python3 scripts/check_log_privacy.py --url http://127.0.0.1:18001 --container "$container_id"
         python3 scripts/load_test.py --url http://127.0.0.1:18001 --requests 20 --concurrency 2 > load-test.json
         docker exec "$container_id" python -m scripts.evaluate_release
         docker cp "$container_id:/tmp/model-evaluation.json" model-evaluation.json

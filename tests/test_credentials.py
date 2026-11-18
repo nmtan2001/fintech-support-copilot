@@ -26,3 +26,20 @@ def test_creates_private_scoped_file_without_implicit_upload(monkeypatch, tmp_pa
     assert body["contexts"][0]["context"]["namespace"] == "fintech-support"
     assert "ADMIN_PRIVATE_KEY" not in target.read_text()
     assert token not in capsys.readouterr().out
+
+
+def test_refuses_filesystem_that_cannot_enforce_private_permissions(monkeypatch, tmp_path):
+    import pytest
+    payload = base64.urlsafe_b64encode(json.dumps({"exp": 1800000000}).encode()).decode().rstrip("=")
+    token = "header." + payload + ".signature"
+    config = {"clusters": [{"name": "test", "cluster": {"server": "https://example.invalid"}}]}
+    monkeypatch.setattr(renewal.subprocess, "check_output",
+                        lambda command, **kwargs: json.dumps(config) if command[1] == "config" else token)
+    target = tmp_path / "insecure.json"
+    target.write_text("placeholder")
+    target.chmod(0o644)
+    monkeypatch.setattr(renewal.os, "fchmod", lambda *args: None)
+    monkeypatch.setattr(sys, "argv", ["renew", "--admin-kubeconfig", str(tmp_path / "admin"), "--output", str(target)])
+    with pytest.raises(PermissionError, match="private"):
+        renewal.main()
+    assert not target.exists()
