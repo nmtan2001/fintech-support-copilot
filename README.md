@@ -199,3 +199,7 @@ CI revision; earlier AI-course screenshots are not substitutes.
 For expiring credentials, temporary runners and rebuilding the local environment,
 use [the reproduction and renewal guide](docs/reproduce-and-renew.md) and
 [the recorded runtime state](docs/runtime-state.json).
+
+Release 1.1.0 adds `POST /classify/batch` for 1–16 questions (up to 2,000
+characters each), returning ordered intents and uncalibrated confidence. It
+performs no generation or record lookup and reports the active model revision.

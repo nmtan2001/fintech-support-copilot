@@ -75,18 +75,19 @@ jobs:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Build and scan release image
-        id: image
-        uses: ./.github/actions/build-and-scan
-        with:
-          hf-token: ${{ secrets.HF_TOKEN }}
-
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and scan release image
+        id: image
+        uses: ./.github/actions/build-and-scan
+        with:
+          hf-token: ${{ secrets.HF_TOKEN }}
+          reuse-published-sha: ${{ startsWith(github.ref, 'refs/tags/v') }}
 
       - name: Publish scanned image
         id: published
