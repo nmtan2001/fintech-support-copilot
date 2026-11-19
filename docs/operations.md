@@ -92,3 +92,8 @@ Releases from 1.1.0 allow a 30-minute rollout/progress budget and 15 minutes
 of startup probes per container, accounting for measured private-model cold
 starts and sequential surge replicas. Old replicas stay available during
 updates. The first local 447 MB image pull took almost nine minutes.
+
+Create a semantic release tag after the corresponding main pipeline succeeds.
+Tag publication pulls and re-verifies that source commit's published SHA image
+and assigns the semantic alias to the same artifact. It fails if the SHA image
+is absent or its revision label disagrees; it does not silently rebuild a tag.
