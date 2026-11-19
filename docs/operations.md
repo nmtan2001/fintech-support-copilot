@@ -87,3 +87,8 @@ concurrency 1, 2 and 4. Retain JSON output with CPU/memory limits, model revisio
 image digest and hardware. Compare throughput, failures and p95 latency. A local
 measurement is not a production SLA. Two replicas require resources for a third
 pod during a zero-unavailable rolling update.
+
+Releases from 1.1.0 allow a 30-minute rollout/progress budget and 15 minutes
+of startup probes per container, accounting for measured private-model cold
+starts and sequential surge replicas. Old replicas stay available during
+updates. The first local 447 MB image pull took almost nine minutes.

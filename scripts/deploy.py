@@ -76,7 +76,7 @@ def deploy(image, version, commit):
         kubectl("apply", "-f", "k8s/configmap.yaml")
         kubectl("apply", "-f", "-", data=json.dumps(deployment))
         kubectl("apply", "-f", "k8s/service.yaml")
-        kubectl("rollout", "status", "deployment/" + NAME, "--timeout=12m")
+        kubectl("rollout", "status", "deployment/" + NAME, "--timeout=30m")
         check_service(version, commit)
     except Exception:
         for args in (("get", "pods", "-o", "wide"),
@@ -90,7 +90,7 @@ def deploy(image, version, commit):
             for document in previous.values():
                 if document is not None:
                     kubectl("apply", "-f", "-", data=json.dumps(document))
-            kubectl("rollout", "status", "deployment/" + NAME, "--timeout=12m")
+            kubectl("rollout", "status", "deployment/" + NAME, "--timeout=30m")
             identity = previous["deployment"]["metadata"].get("annotations", {})
             if "copilot/version" in identity and "copilot/commit" in identity:
                 check_service(identity["copilot/version"], identity["copilot/commit"])
