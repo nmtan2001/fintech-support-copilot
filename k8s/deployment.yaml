@@ -7,6 +7,8 @@ metadata:
     app.kubernetes.io/name: fintech-support-copilot
 spec:
   replicas: 2
+  # Private-model cold starts can precede sequential surge replicas.
+  progressDeadlineSeconds: 1800
   revisionHistoryLimit: 3
   strategy:
     type: RollingUpdate
@@ -63,7 +65,7 @@ spec:
               port: http
             periodSeconds: 10
             timeoutSeconds: 5
-            failureThreshold: 60
+            failureThreshold: 90
           readinessProbe:
             httpGet:
               path: /ready
