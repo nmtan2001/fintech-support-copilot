@@ -1,18 +1,18 @@
 {
-  "recorded_date": "2026-11-17",
+  "recorded_date": "2026-11-19",
   "cluster": {
     "name": "fintech-validation",
     "kind_version": "v0.30.0",
     "kubernetes_version": "v1.34.0",
-    "state": "running locally in Docker; not a managed production cluster",
+    "state": "existing cluster recovered after Docker Desktop restart",
     "survival": "Requires Docker data to remain; deleting the kind cluster destroys it"
   },
   "deployer": {
     "service_account": "copilot-deployer",
     "namespace": "fintech-support",
-    "issued_utc": "2026-11-17T15:25:05+00:00",
-    "expires_utc": "2026-11-18T15:25:05+00:00",
-    "expires_budapest": "2026-11-18T16:25:05+01:00",
+    "issued_utc": "2026-11-19T08:33:57+00:00",
+    "expires_utc": "2026-11-20T08:33:57+00:00",
+    "expires_budapest": "2026-11-20T09:33:57+01:00",
     "secret": "kubernetes-demo/KUBECONFIG_CONTENT",
     "renewal": "Generate a fresh scoped kubeconfig and replace the environment secret"
   },
@@ -20,7 +20,7 @@
     "name": "fintech-validation-deployer",
     "label": "fintech-deploy",
     "policy": "Temporary; remove registration after demonstration",
-    "state": "listening temporarily for trusted deployment jobs",
+    "state": "temporary listener restored in private Linux storage; awaiting release retry",
     "version": "2.338.2",
     "archive_sha256": "baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40"
   },
@@ -33,5 +33,6 @@
     "secret": "repository/HF_TOKEN",
     "expiry": "Unknown; check Hugging Face token settings",
     "renewal": "Replace the read token for the private pinned repository"
-  }
+  },
+  "private_runtime_directory": "$HOME/.local/state/fintech-validation"
 }

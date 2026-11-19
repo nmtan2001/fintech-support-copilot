@@ -152,3 +152,15 @@ requests still run quality checks. This lets final evidence be updated without
 changing the running release identity or queuing a job after the temporary
 runner is removed. Functional source and configuration changes still trigger
 the full main-branch delivery path.
+
+## Surviving interrupted sessions
+
+Public, checksum-verified archives and tools can remain in ignored .runtime/.
+The temporary runner and scoped kubeconfig are now held in the private Linux
+directory $HOME/.local/state/fintech-validation until demonstration cleanup.
+It survives WSL restarts; /tmp does not. Start Docker Desktop before checking
+the cluster. Restart the runner listener from that directory if it is offline.
+The listener runs only during the approved demonstration; no automatic login
+service or scheduled job is installed. Its registration is removed afterwards.
+The scoped credential expiry remains authoritative in runtime-state.json.
+Never infer that a missing kubeconfig means an empty or deleted cluster.
