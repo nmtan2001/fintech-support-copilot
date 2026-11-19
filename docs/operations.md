@@ -70,7 +70,8 @@ Failure still fails the job even after a successful recovery. On a first failed
 release there is no previous release to restore; diagnostics remain available.
 This does not roll back registry secrets, external models, or external providers.
 
-Inspect: kubectl -n fintech-support get deployment,pods,service
+Inspect: kubectl -n fintech-support get deployment,pods
+Service: kubectl -n fintech-support get service fintech-support-copilot
 Debug: kubectl -n fintech-support describe deployment fintech-support-copilot
 Logs: kubectl -n fintech-support logs -l app.kubernetes.io/name=fintech-support-copilot
 Access: kubectl -n fintech-support port-forward service/fintech-support-copilot 8000:80

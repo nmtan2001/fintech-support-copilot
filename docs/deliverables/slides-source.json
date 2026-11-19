@@ -1,12 +1,162 @@
 [
- {"title":"From a model demo to verified delivery","kicker":"FINTECH SUPPORT COPILOT","leftTitle":"DevOps + MLOps","left":["CPU-served DistilBERT for 77 banking intents","FastAPI service and Streamlit workbench","Synthetic records; read-only tools"],"rightTitle":"Engineering goal","right":["Trace source, image, config and model to runtime","Reject bad changes before release","Verify and recover failed rollouts"]},
- {"title":"Two layers, one release contract","kicker":"SCOPE","leftTitle":"DevOps","left":["Pull requests, tests and lint","Scanned, versioned container images","Kubernetes rollout and recovery"],"rightTitle":"MLOps","right":["Pinned model revision and weight fingerprint","Checksum-pinned classification benchmark","Model gates and inference signals"]},
- {"title":"The candidate must prove itself","kicker":"DELIVERY PATH","leftTitle":"Before publication","left":["Tests and Ruff → build → vulnerability scan","Start the exact candidate image","Run HTTP, model and Kubernetes checks"],"rightTitle":"After publication","right":["Deploy the registry digest","Verify version, commit and support behavior","Restore previous resources on failure"]},
- {"title":"A release has more than a version tag","kicker":"REPRODUCIBILITY","leftTitle":"Application identity","left":["Git source commit + semantic version","Container digest + CycloneDX SBOM","Base-image digest + hashed dependencies"],"rightTitle":"Model identity","right":["Immutable Hugging Face revision","SHA-256 of the safetensors weights","Upstream test-set commit and checksum"]},
- {"title":"Security gates stopped real findings","kicker":"FAILURE EVIDENCE","leftTitle":"First hosted scan","left":["Six fixable HIGH-severity findings","Release path stopped automatically","Dependencies upgraded; no bypass exceptions"],"rightTitle":"A genuine failing test","right":["Database failure escaped the lookup endpoint","Failing revision retained in Git and CI","Fix returns a sanitized 503 with request ID"]},
- {"title":"Classification: 92.44% reproduced","kicker":"OFFICIAL BANKING77 TEST SET","leftTitle":"92.44% accuracy","left":["All 3,080 official test examples","77 banking-support intents","Pinned original checkpoint; CPU inference"],"rightTitle":"92.44% Macro-F1","right":["90% minimum accuracy and F1 for release","Dataset bytes checked before inference","Separate from workflow and live LLM quality"]},
- {"title":"Workflow quality is a separate result","kicker":"48 AUTHORED SYNTHETIC CASES","leftTitle":"38 / 48 passed","left":["Classification, retrieval and tool behavior","Includes oracle/component scenarios","Failures stay visible in the evaluation report"],"rightTitle":"100% delivered grounding","right":["Deterministic extractive response path","No unsupported generated claims in this check","Does not establish real-bank or live LLM quality"]},
- {"title":"Roll forward safely; recover deliberately","kicker":"KUBERNETES","leftTitle":"Runtime controls","left":["Two replicas; zero-unavailable rolling update","Separate startup, readiness and liveness probes","Non-root, read-only root and resource limits"],"rightTitle":"Recovery controls","right":["Snapshot Deployment, ConfigMap and Service","Verify exact release and a support request","Restore snapshots; verify previous identity"]},
- {"title":"Measure behavior, not just uptime","kicker":"OBSERVABILITY","leftTitle":"Service signals","left":["Request IDs and structured route logs","Request rate, error ratio and p95 latency","Grafana dashboard and Prometheus metrics"],"rightTitle":"Model signals","right":["Intent mix, response outcomes and confidence","Small CI load sample: 20 / 20 successful","Confidence is uncalibrated; no drift claim"]},
- {"title":"Show the evidence live","kicker":"ASSESSMENT DEMONSTRATION","leftTitle":"Verified in CI","left":["Tests, patched image scan and real model gate","Container request checks and load sample","Isolated Kubernetes rollout and recovery"],"rightTitle":"Final release evidence","right":["Distinct v1.0.0, v1.1.0 and v1.2.0 changes","Published digests, rollout and live version","A source change through the same pipeline"]}
+  {
+    "title": "From a model demo to verified delivery",
+    "kicker": "FINTECH SUPPORT COPILOT",
+    "leftTitle": "DevOps + MLOps",
+    "left": [
+      "CPU-served DistilBERT for 77 banking intents",
+      "FastAPI service and Streamlit workbench",
+      "Synthetic records; read-only tools"
+    ],
+    "rightTitle": "Engineering goal",
+    "right": [
+      "Trace source, image, config and model to runtime",
+      "Reject bad changes before release",
+      "Verify and recover failed rollouts"
+    ]
+  },
+  {
+    "title": "Two layers, one release contract",
+    "kicker": "SCOPE",
+    "leftTitle": "DevOps",
+    "left": [
+      "Pull requests, tests and lint",
+      "Scanned, versioned container images",
+      "Kubernetes rollout and recovery"
+    ],
+    "rightTitle": "MLOps",
+    "right": [
+      "Pinned model revision and weight fingerprint",
+      "Checksum-pinned classification benchmark",
+      "Model gates and inference signals"
+    ]
+  },
+  {
+    "title": "The candidate must prove itself",
+    "kicker": "DELIVERY PATH",
+    "leftTitle": "Before publication",
+    "left": [
+      "Tests and Ruff \u2192 build \u2192 vulnerability scan",
+      "Start the exact candidate image",
+      "Run HTTP, model and Kubernetes checks"
+    ],
+    "rightTitle": "After publication",
+    "right": [
+      "Deploy the registry digest",
+      "Verify version, commit and support behavior",
+      "Restore previous resources on failure"
+    ]
+  },
+  {
+    "title": "A release has more than a version tag",
+    "kicker": "REPRODUCIBILITY",
+    "leftTitle": "Application identity",
+    "left": [
+      "Git source commit + semantic version",
+      "Container digest + CycloneDX SBOM",
+      "Base-image digest + hashed dependencies"
+    ],
+    "rightTitle": "Model identity",
+    "right": [
+      "Immutable Hugging Face revision",
+      "SHA-256 of the safetensors weights",
+      "Upstream test-set commit and checksum"
+    ]
+  },
+  {
+    "title": "Security gates stopped real findings",
+    "kicker": "FAILURE EVIDENCE",
+    "leftTitle": "First hosted scan",
+    "left": [
+      "Six fixable HIGH-severity findings",
+      "Release path stopped automatically",
+      "Dependencies upgraded; no bypass exceptions"
+    ],
+    "rightTitle": "A genuine failing test",
+    "right": [
+      "Database failure escaped the lookup endpoint",
+      "Failing revision retained in Git and CI",
+      "Fix returns a sanitized 503 with request ID"
+    ]
+  },
+  {
+    "title": "Classification: 92.44% reproduced",
+    "kicker": "OFFICIAL BANKING77 TEST SET",
+    "leftTitle": "92.44% accuracy",
+    "left": [
+      "All 3,080 official test examples",
+      "77 banking-support intents",
+      "Pinned original checkpoint; CPU inference"
+    ],
+    "rightTitle": "92.44% Macro-F1",
+    "right": [
+      "90% minimum accuracy and F1 for release",
+      "Dataset bytes checked before inference",
+      "Separate from workflow and live LLM quality"
+    ]
+  },
+  {
+    "title": "Workflow quality is a separate result",
+    "kicker": "48 AUTHORED SYNTHETIC CASES",
+    "leftTitle": "38 / 48 passed",
+    "left": [
+      "Classification, retrieval and tool behavior",
+      "Includes oracle/component scenarios",
+      "Failures stay visible in the evaluation report"
+    ],
+    "rightTitle": "100% delivered grounding",
+    "right": [
+      "Deterministic extractive response path",
+      "No unsupported generated claims in this check",
+      "Does not establish real-bank or live LLM quality"
+    ]
+  },
+  {
+    "title": "Roll forward safely; recover deliberately",
+    "kicker": "KUBERNETES",
+    "leftTitle": "Runtime controls",
+    "left": [
+      "Two replicas; zero-unavailable rolling update",
+      "Separate startup, readiness and liveness probes",
+      "Non-root, read-only root and resource limits"
+    ],
+    "rightTitle": "Recovery controls",
+    "right": [
+      "Snapshot Deployment, ConfigMap and Service",
+      "Verify exact release and a support request",
+      "Restore snapshots; verify previous identity"
+    ]
+  },
+  {
+    "title": "Measure behavior, not just uptime",
+    "kicker": "OBSERVABILITY",
+    "leftTitle": "Service signals",
+    "left": [
+      "Request IDs and structured route logs",
+      "Request rate, error ratio and p95 latency",
+      "Grafana dashboard and Prometheus metrics"
+    ],
+    "rightTitle": "Model signals",
+    "right": [
+      "Intent mix, response outcomes and confidence",
+      "Small CI load sample: 20 / 20 successful",
+      "Confidence is uncalibrated; no drift claim"
+    ]
+  },
+  {
+    "title": "Show the evidence live",
+    "kicker": "ASSESSMENT DEMONSTRATION",
+    "leftTitle": "Three live releases",
+    "left": [
+      "v1.0.0: hardened automated baseline",
+      "v1.1.0: bounded batch classification",
+      "v1.2.0: server access-log privacy fix"
+    ],
+    "rightTitle": "Demonstrate and reproduce",
+    "right": [
+      "116 CI tests; full model benchmark passed",
+      "PRs, run links and image digests retained",
+      "Renew access; rehearse a fresh live change"
+    ]
+  }
 ]

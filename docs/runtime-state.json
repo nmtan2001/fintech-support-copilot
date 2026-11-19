@@ -4,7 +4,7 @@
     "name": "fintech-validation",
     "kind_version": "v0.30.0",
     "kubernetes_version": "v1.34.0",
-    "state": "existing cluster recovered after Docker Desktop restart",
+    "state": "running; final v1.2.0 deployment verified with two ready replicas",
     "survival": "Requires Docker data to remain; deleting the kind cluster destroys it"
   },
   "deployer": {
@@ -20,9 +20,17 @@
     "name": "fintech-validation-deployer",
     "label": "fintech-deploy",
     "policy": "Temporary; remove registration after demonstration",
-    "state": "temporary listener restored in private Linux storage; awaiting release retry",
+    "state": "stopped and unregistered; local runner credentials and job workspace removed",
     "version": "2.338.2",
-    "archive_sha256": "baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40"
+    "archive_sha256": "baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40",
+    "transient_unit": "fintech-validation-runner.service",
+    "maximum_runtime": "3 hours; no automatic startup service enabled",
+    "started_utc": "2026-11-19T09:30:31+00:00",
+    "removed_utc": "2026-11-19T10:46:12.263151+00:00",
+    "registration_check": "GitHub repository runner list is empty",
+    "listener_expires_utc_historical": "2026-11-19T12:30:31+00:00",
+    "listener_expires_budapest_historical": "2026-11-19T13:30:31+01:00",
+    "renewal": "Register and start a fresh trusted runner before another application release"
   },
   "registry_token": {
     "secret": "kubernetes-demo/GHCR_READ_TOKEN",
@@ -34,5 +42,19 @@
     "expiry": "Unknown; check Hugging Face token settings",
     "renewal": "Replace the read token for the private pinned repository"
   },
-  "private_runtime_directory": "$HOME/.local/state/fintech-validation"
+  "private_runtime_directory": "$HOME/.local/state/fintech-validation",
+  "evidence_artifacts": {
+    "final_main_run": "https://github.com/nmtan2001/fintech-support-copilot/actions/runs/44504472666",
+    "expires_utc": "2027-02-17T10:18:46Z",
+    "preserved_copies": "docs/evidence/v1.2.0-{model-evaluation.json,load-measurement.json,sbom.cdx.json}"
+  },
+  "application": {
+    "version": "1.2.0",
+    "source_commit": "2ff7b3fc081f58fcdba2c7d69e72c62154d102fc",
+    "ready_replicas_at_verification": 2,
+    "evidence": "docs/evidence/release-v1.2.0.json",
+    "availability": "Local demonstration; requires host and Docker running"
+  },
+  "temporary_admin_kubeconfig": "Deleted after scoped credential renewal; not retained or uploaded",
+  "temporary_validation_container": "No running fintech-support-validation container remains"
 }

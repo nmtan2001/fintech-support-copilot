@@ -1,0 +1,9 @@
+{
+  "requests": 20,
+  "concurrency": 2,
+  "successful": 20,
+  "failed": 0,
+  "requests_per_second": 34.266182581223795,
+  "p50_seconds": 0.059105773499993575,
+  "p95_seconds": 0.06376829499998848
+}

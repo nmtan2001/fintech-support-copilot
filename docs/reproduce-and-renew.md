@@ -34,19 +34,20 @@ and a third Pod during a rolling update.
 
 Use a dedicated kubeconfig, never overwrite a personal/default cluster context:
 
-    mkdir -p .runtime
-    chmod 700 .runtime
+    mkdir -p "$HOME/.local/state/fintech-validation"
+    chmod 700 "$HOME/.local/state/fintech-validation"
     kind get clusters
-    kind create cluster --name fintech-validation --image kindest/node:v1.34.0 --kubeconfig .runtime/admin-kubeconfig --wait 120s
-    export KUBECONFIG="$PWD/.runtime/admin-kubeconfig"
+    kind create cluster --name fintech-validation --image kindest/node:v1.34.0 --kubeconfig $HOME/.local/state/fintech-validation/admin-kubeconfig --wait 120s
+    export KUBECONFIG="$PWD/$HOME/.local/state/fintech-validation/admin-kubeconfig"
     kubectl get nodes
     kubectl apply -f k8s/namespace.yaml
     kubectl apply -f k8s/rbac.yaml
 
-Create .runtime first with permissions 700. It is ignored by Git and Docker.
+Keep credential files in this private Linux directory with permissions 700.
+Do not export administrator credentials to a Windows-mounted project folder.
 If the cluster already exists but you lost its config, use:
 
-    kind export kubeconfig --name fintech-validation --kubeconfig .runtime/admin-kubeconfig
+    kind export kubeconfig --name fintech-validation --kubeconfig $HOME/.local/state/fintech-validation/admin-kubeconfig
 
 During this session ordinary Docker pulls had DNS failures; the build engine
 could fetch the pinned image. The optional recovery is a temporary Dockerfile
@@ -59,7 +60,7 @@ change system DNS or restart unrelated running containers as a first response.
 The deployer cannot create namespaces or administer the cluster. The administrator
 bootstraps RBAC once. Then run from the repository root:
 
-    python scripts/renew_cluster_credentials.py --admin-kubeconfig .runtime/admin-kubeconfig --output /tmp/fintech-deployer-kubeconfig --duration 24h --upload
+    python scripts/renew_cluster_credentials.py --admin-kubeconfig $HOME/.local/state/fintech-validation/admin-kubeconfig --output /tmp/fintech-deployer-kubeconfig --duration 24h --upload
 
 --upload explicitly transmits the scoped bearer-token kubeconfig to this repo's
 kubernetes-demo environment as KUBECONFIG_CONTENT. Omit it for local-only use.
@@ -73,7 +74,11 @@ Verify the permissions without printing any credential:
     KUBECONFIG=/tmp/fintech-deployer-kubeconfig kubectl auth can-i create namespaces
 
 The expected answers are yes and no respectively. Keep administrator credentials
-local. Remove scoped credential files when no longer needed.
+local. Delete the temporary administrator file immediately after renewal:
+
+    rm -- "$HOME/.local/state/fintech-validation/admin-kubeconfig"
+
+Remove scoped credential files when no longer needed.
 
 ## 4. Restore GitHub secrets and settings
 
@@ -113,11 +118,15 @@ installed by this project.
 Run make check, push a feature branch and create a PR. Require the tests and
 container gate to pass before merging. Update VERSION and pyproject.toml together
 for each new semantic release. A main push publishes and deploys a SHA image; a
-matching vX.Y.Z tag publishes the semantic tag. Both must refer to current main.
+matching vX.Y.Z tag publishes the semantic tag. Both must refer to current main. Wait for the main workflow to succeed before
+creating the semantic tag. The tag promotes the existing SHA image, requires its
+source label to match, and repeats the gates without rebuilding. Wait for the
+tag workflow to finish before merging the next application release.
 
 Watch Actions and the runner terminal. Then inspect:
 
-    kubectl -n fintech-support get deployment,pods,service
+    kubectl -n fintech-support get deployment,pods
+    kubectl -n fintech-support get service fintech-support-copilot
     kubectl -n fintech-support rollout status deployment/fintech-support-copilot
     kubectl -n fintech-support port-forward service/fintech-support-copilot 8000:80
 
@@ -164,3 +173,19 @@ The listener runs only during the approved demonstration; no automatic login
 service or scheduled job is installed. Its registration is removed afterwards.
 The scoped credential expiry remains authoritative in runtime-state.json.
 Never infer that a missing kubeconfig means an empty or deleted cluster.
+
+
+## Temporary listener that survives tool interruptions
+
+For this demonstration the listener uses a transient user unit, limited to
+three hours. It is not enabled at login and is removed during cleanup. Once
+the official runner is configured in private Linux storage, a user can run:
+
+    systemd-run --user --unit=fintech-validation-runner --property=RuntimeMaxSec=3h --property=WorkingDirectory="$HOME/.local/state/fintech-validation/runner" /bin/bash "$HOME/.local/state/fintech-validation/runner/run.sh"
+    systemctl --user status fintech-validation-runner
+    journalctl --user -u fintech-validation-runner --no-pager -n 20
+
+Use runtime-state.json for the recorded listener expiry. The host must still be
+running. Stop it with systemctl --user stop fintech-validation-runner when the
+work is finished, then remove the GitHub runner registration as described above.
+Keep a registration only while you intend to execute trusted deployment jobs.

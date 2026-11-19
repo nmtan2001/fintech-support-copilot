@@ -2,9 +2,9 @@
 
 engineering-report.pdf is a seven-page validation report.
 engineering-presentation.pptx contains ten editable slides.
-Original submission/ documents were preserved. These new documents distinguish
-verified measurements from pending final releases. Refresh the status/evidence
-paragraphs after later deployment runs rather than claiming unverified results.
+Original submission/ documents were preserved. These documents describe the three verified application deployments, measured
+model quality, limitations and reproducible release procedure. See the evidence
+index for exact commits, digests, workflow URLs and runtime credential expiry.
 
 The report source is report-source.json. Install reportlab==5.1.0 in a separate
 document environment and run build_report.py to regenerate the PDF.
@@ -15,5 +15,5 @@ helper module and a temporary preview directory as its two arguments. The helper
 validates HTML bounds; screenshots of all ten slides were visually inspected.
 The compiled PowerPoint is usable without that authoring environment.
 
-The slide deck intentionally does not claim an installed public endpoint or
-completed three-version release sequence until actual evidence is added.
+The application is local, with no public endpoint. The teacher still requires
+a fresh source change during assessment; follow ../assessment-rehearsal.md.

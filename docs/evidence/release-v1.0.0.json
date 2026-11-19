@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "commit": "981302e9fc84aa36e236d41e3bd7260f536b9d9a",
+  "image": "ghcr.io/nmtan2001/fintech-support-copilot@sha256:5f5d497976ff50fc78f3d2b308ccbd953ab06304415d421a6e352fc606af428d",
+  "ready_replicas": 2,
+  "verified_utc": "2026-11-19T09:43:31.817214+00:00",
+  "run_url": "https://github.com/nmtan2001/fintech-support-copilot/actions/runs/44118506901",
+  "model_revision": "22b8cf5377501f09520f8655d2cd42096c23cf3f",
+  "verification": "Live Service HTTP identity and synthetic support request passed",
+  "pr_url": "https://github.com/nmtan2001/fintech-support-copilot/pull/1"
+}
