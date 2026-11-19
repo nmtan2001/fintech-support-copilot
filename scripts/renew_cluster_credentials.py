@@ -28,6 +28,10 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
     descriptor = os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     os.fchmod(descriptor, 0o600)
+    if os.fstat(descriptor).st_mode & 0o077:
+        os.close(descriptor)
+        args.output.unlink()
+        raise PermissionError("Credential output must support private permissions; use a private Linux directory")
     with os.fdopen(descriptor, "w") as target:
         json.dump(content, target)
     claims = json.loads(base64.urlsafe_b64decode(token.split(".")[1] + "==="))
