@@ -1,0 +1,14 @@
+{
+  "version": "1.1.0",
+  "commit": "af53c2d746781aca6021d3688ec54e43488260ef",
+  "image": "ghcr.io/nmtan2001/fintech-support-copilot@sha256:b749725084c5633a36653017c5db92c84e8a20a7a5569348d4bcb0493536f47e",
+  "ready_replicas": 2,
+  "verified_utc": "2026-11-19T10:11:22.450400+00:00",
+  "run_url": "https://github.com/nmtan2001/fintech-support-copilot/actions/runs/44500542281",
+  "model_revision": "22b8cf5377501f09520f8655d2cd42096c23cf3f",
+  "verification": "Live identity, support workflow and new batch-classification endpoint passed",
+  "tag_run_url": "https://github.com/nmtan2001/fintech-support-copilot/actions/runs/44503313060",
+  "tag_workflow": "success",
+  "semantic_tag_promotes_same_digest": true,
+  "pr_url": "https://github.com/nmtan2001/fintech-support-copilot/pull/2"
+}

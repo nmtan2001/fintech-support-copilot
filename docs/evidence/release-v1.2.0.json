@@ -1,0 +1,30 @@
+{
+  "version": "1.2.0",
+  "commit": "2ff7b3fc081f58fcdba2c7d69e72c62154d102fc",
+  "image": "ghcr.io/nmtan2001/fintech-support-copilot@sha256:b114ef46c7787e84a34cfa43a4eb816e54aea0d72c4fed390edd1eff61a6db0b",
+  "ready_replicas": 2,
+  "verified_utc": "2026-11-19T10:38:37.628919+00:00",
+  "run_url": "https://github.com/nmtan2001/fintech-support-copilot/actions/runs/44504472666",
+  "pr_url": "https://github.com/nmtan2001/fintech-support-copilot/pull/3",
+  "version_response": {
+    "name": "fintech-support-copilot",
+    "version": "1.2.0",
+    "commit": "2ff7b3fc081f58fcdba2c7d69e72c62154d102fc",
+    "model_id": "nmtan2001/fintech-support-distilbert",
+    "model_revision": "22b8cf5377501f09520f8655d2cd42096c23cf3f"
+  },
+  "ready_response": {
+    "status": "ready",
+    "version": "1.2.0"
+  },
+  "verification": "Live Service identity, support workflow and batch endpoint passed; privacy canary passed in publication gate",
+  "tag_run_url": "https://github.com/nmtan2001/fintech-support-copilot/actions/runs/44507546525",
+  "tag_workflow": "success",
+  "semantic_tag_promotes_same_digest": true,
+  "hosted_tests": {
+    "passed": 116,
+    "skipped": 1,
+    "skip_reason": "Optional local baseline training artifact is absent from checkout"
+  },
+  "privacy_canary": "Request query data is absent from container logs"
+}

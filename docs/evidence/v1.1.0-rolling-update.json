@@ -1,0 +1,25 @@
+{
+  "scope": "Observed v1.1.0 rolling update before completion",
+  "recorded_utc": "2026-11-19T10:03:55.336720+00:00",
+  "pods": [
+    {
+      "name": "fintech-support-copilot-65b468448d-5m768",
+      "image": "ghcr.io/nmtan2001/fintech-support-copilot@sha256:5f5d497976ff50fc78f3d2b308ccbd953ab06304415d421a6e352fc606af428d",
+      "ready": true,
+      "phase": "Running"
+    },
+    {
+      "name": "fintech-support-copilot-65b468448d-pp4dl",
+      "image": "ghcr.io/nmtan2001/fintech-support-copilot@sha256:5f5d497976ff50fc78f3d2b308ccbd953ab06304415d421a6e352fc606af428d",
+      "ready": true,
+      "phase": "Running"
+    },
+    {
+      "name": "fintech-support-copilot-7f8cc4887b-scps2",
+      "image": "ghcr.io/nmtan2001/fintech-support-copilot@sha256:b749725084c5633a36653017c5db92c84e8a20a7a5569348d4bcb0493536f47e",
+      "ready": false,
+      "phase": "Pending"
+    }
+  ],
+  "ready_count": 2
+}
