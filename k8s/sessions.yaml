@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: copilot-sessions
+  namespace: fintech-support
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: copilot-sessions
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: copilot-sessions
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: redis
+          image: redis:7.4-alpine
+          args: [redis-server, --save, "", --appendonly, "no", --maxmemory, 64mb, --maxmemory-policy, noeviction]
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: [redis-cli, ping]
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: [redis-cli, ping]
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: state
+              mountPath: /data
+      volumes:
+        - name: state
+          emptyDir:
+            sizeLimit: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: copilot-sessions
+  namespace: fintech-support
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: copilot-sessions
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis

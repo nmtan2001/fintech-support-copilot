@@ -53,11 +53,11 @@ spec:
                   name: fintech-support-copilot
                   key: HF_TOKEN
                   optional: true
-            - name: NVIDIA_API_KEY
+            - name: ZAI_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: fintech-support-copilot
-                  key: NVIDIA_API_KEY
+                  key: ZAI_API_KEY
                   optional: true
           startupProbe:
             httpGet:

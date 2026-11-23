@@ -1,0 +1,679 @@
+{
+  "version": "1.0.0",
+  "brand": "FablePay",
+  "synthetic_only": true,
+  "articles": [
+    {
+      "id": "KB-CARD-PAYMENTS-01",
+      "title": "Diagnose a declined card payment",
+      "topic": "card_payments",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Check the payment details, available balance, card status and spending limit. A failed payment does not prove that the merchant received funds. For a synthetic transaction reference, use the read-only lookup to confirm its recorded status and reason. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Diagnose a declined card payment",
+      "related_ids": [
+        "KB-CARD-PAYMENTS-02",
+        "KB-CARD-PAYMENTS-03",
+        "KB-CARD-PAYMENTS-04"
+      ]
+    },
+    {
+      "id": "KB-CARD-PAYMENTS-02",
+      "title": "Frozen cards and payment retries",
+      "topic": "card_payments",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "A frozen card cannot make new card payments. Review Cards > Card status and follow the displayed unfreeze instructions only if you recognize the card and activity. The assistant cannot unfreeze a card. After correcting the problem, retry once; repeated retries may create multiple authorizations. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Frozen cards and payment retries",
+      "related_ids": [
+        "KB-CARD-PAYMENTS-01",
+        "KB-CARD-PAYMENTS-03",
+        "KB-CARD-PAYMENTS-04"
+      ]
+    },
+    {
+      "id": "KB-CARD-PAYMENTS-03",
+      "title": "Merchant acceptance and offline terminals",
+      "topic": "card_payments",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Some merchants do not accept the card network or require an online authorization. Ask the merchant which payment networks it accepts. An offline terminal failure does not imply that the card is blocked. Use another payment method if the merchant cannot obtain authorization. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Merchant acceptance and offline terminals",
+      "related_ids": [
+        "KB-CARD-PAYMENTS-01",
+        "KB-CARD-PAYMENTS-02",
+        "KB-CARD-PAYMENTS-04"
+      ]
+    },
+    {
+      "id": "KB-CARD-PAYMENTS-04",
+      "title": "Escalate recurring payment failures",
+      "topic": "card_payments",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "If card status, available balance and limits are correct but a recognized payment still fails, contact official in-app support with merchant name, approximate time and the transaction reference. Never provide a PIN, CVV, password or full card number in a chat. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Escalate recurring payment failures",
+      "related_ids": [
+        "KB-CARD-PAYMENTS-01",
+        "KB-CARD-PAYMENTS-02",
+        "KB-CARD-PAYMENTS-03"
+      ]
+    },
+    {
+      "id": "KB-CARD-STATUS-01",
+      "title": "Lost or stolen cards",
+      "topic": "card_status",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "For a lost or stolen card, use Cards > Freeze immediately and report the loss through official in-app support. Freezing is a customer action; the assistant can explain it but cannot perform it. Review recent activity and separately report unfamiliar transactions. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Lost or stolen cards",
+      "related_ids": [
+        "KB-CARD-STATUS-02",
+        "KB-CARD-STATUS-03",
+        "KB-CARD-STATUS-04"
+      ]
+    },
+    {
+      "id": "KB-CARD-STATUS-02",
+      "title": "Understand card states",
+      "topic": "card_status",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "An active card is enabled for supported payments, a frozen card is temporarily restricted, and a blocked card cannot be restored through the normal unfreeze flow. A read-only synthetic card lookup reports the fixture state, not a real customer account. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Understand card states",
+      "related_ids": [
+        "KB-CARD-STATUS-01",
+        "KB-CARD-STATUS-03",
+        "KB-CARD-STATUS-04"
+      ]
+    },
+    {
+      "id": "KB-CARD-STATUS-03",
+      "title": "Replacing a damaged or missing card",
+      "topic": "card_status",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Request a replacement through Cards > Replace card. Confirm the delivery address before submitting. Replacement does not reverse transactions or guarantee arrival by a particular date. Any displayed replacement charge must be reviewed before confirmation. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Replacing a damaged or missing card",
+      "related_ids": [
+        "KB-CARD-STATUS-01",
+        "KB-CARD-STATUS-02",
+        "KB-CARD-STATUS-04"
+      ]
+    },
+    {
+      "id": "KB-CARD-STATUS-04",
+      "title": "Recovering a previously lost card",
+      "topic": "card_status",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "If a missing card is found, inspect its in-app status before using it. Do not use a blocked or replaced card. If there is suspicious activity or uncertainty about who had the card, keep it frozen and contact official support. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Recovering a previously lost card",
+      "related_ids": [
+        "KB-CARD-STATUS-01",
+        "KB-CARD-STATUS-02",
+        "KB-CARD-STATUS-03"
+      ]
+    },
+    {
+      "id": "KB-CARD-DELIVERY-01",
+      "title": "Track a card order",
+      "topic": "card_delivery",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Open Cards > Delivery to see the current delivery estimate and tracking link when available. Delivery dates are estimates, not guarantees. The assistant cannot access live courier tracking or infer arrival from the classifier label. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Track a card order",
+      "related_ids": [
+        "KB-CARD-DELIVERY-02",
+        "KB-CARD-DELIVERY-03",
+        "KB-CARD-DELIVERY-04"
+      ]
+    },
+    {
+      "id": "KB-CARD-DELIVERY-02",
+      "title": "Card delivery address changes",
+      "topic": "card_delivery",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Before dispatch, review whether Cards > Delivery offers an address edit. After dispatch, contact official support; an address change is not guaranteed. Never post a complete home address in the assistant chat. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Card delivery address changes",
+      "related_ids": [
+        "KB-CARD-DELIVERY-01",
+        "KB-CARD-DELIVERY-03",
+        "KB-CARD-DELIVERY-04"
+      ]
+    },
+    {
+      "id": "KB-CARD-DELIVERY-03",
+      "title": "Card late or marked delivered",
+      "topic": "card_delivery",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "When the delivery estimate has passed, check the tracking page and building reception if applicable. If tracking says delivered but the card is missing, freeze the card and contact official support. Do not assume a neighbour has it. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Card late or marked delivered",
+      "related_ids": [
+        "KB-CARD-DELIVERY-01",
+        "KB-CARD-DELIVERY-02",
+        "KB-CARD-DELIVERY-04"
+      ]
+    },
+    {
+      "id": "KB-CARD-DELIVERY-04",
+      "title": "Activate a newly delivered card",
+      "topic": "card_delivery",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Follow the activation instructions displayed in the app for that card. A replacement may require separate activation. Do not send activation codes or security details to the assistant, and do not assume a delivered card is already active. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Activate a newly delivered card",
+      "related_ids": [
+        "KB-CARD-DELIVERY-01",
+        "KB-CARD-DELIVERY-02",
+        "KB-CARD-DELIVERY-03"
+      ]
+    },
+    {
+      "id": "KB-CASH-WITHDRAWALS-01",
+      "title": "ATM cash not received",
+      "topic": "cash_withdrawals",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "If an ATM debits a withdrawal but dispenses no cash, record the ATM operator, location and approximate time. Check the transaction details and contact official support. Do not keep retrying the same machine or accept help from a stranger asking for your PIN. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 ATM cash not received",
+      "related_ids": [
+        "KB-CASH-WITHDRAWALS-02",
+        "KB-CASH-WITHDRAWALS-03",
+        "KB-CASH-WITHDRAWALS-04"
+      ]
+    },
+    {
+      "id": "KB-CASH-WITHDRAWALS-02",
+      "title": "ATM operator surcharges",
+      "topic": "cash_withdrawals",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "An ATM operator may display its own surcharge before confirmation. This is separate from any FablePay withdrawal charge shown in the app. Cancel before confirmation if you do not accept the displayed charges. The handbook does not promise free withdrawals. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 ATM operator surcharges",
+      "related_ids": [
+        "KB-CASH-WITHDRAWALS-01",
+        "KB-CASH-WITHDRAWALS-03",
+        "KB-CASH-WITHDRAWALS-04"
+      ]
+    },
+    {
+      "id": "KB-CASH-WITHDRAWALS-03",
+      "title": "Withdrawal limits and available funds",
+      "topic": "cash_withdrawals",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Review Limits > Cash withdrawals and your available balance before withdrawing. A failed withdrawal may reflect the ATM operator limit rather than the FablePay limit. The assistant cannot increase limits or override an ATM decision. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Withdrawal limits and available funds",
+      "related_ids": [
+        "KB-CASH-WITHDRAWALS-01",
+        "KB-CASH-WITHDRAWALS-02",
+        "KB-CASH-WITHDRAWALS-04"
+      ]
+    },
+    {
+      "id": "KB-CASH-WITHDRAWALS-04",
+      "title": "Card retained by an ATM",
+      "topic": "cash_withdrawals",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Freeze a card retained by an ATM and contact the ATM operator using a trusted contact channel. If it cannot be safely recovered, request replacement through the app. Never disclose your PIN to recover a retained card. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Card retained by an ATM",
+      "related_ids": [
+        "KB-CASH-WITHDRAWALS-01",
+        "KB-CASH-WITHDRAWALS-02",
+        "KB-CASH-WITHDRAWALS-03"
+      ]
+    },
+    {
+      "id": "KB-TRANSFERS-01",
+      "title": "Pending transfers and arrival estimates",
+      "topic": "transfers",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "A pending transfer is still processing. Open its transfer details to see the displayed expected arrival window and verify recipient details. The expected arrival window is an estimate, not a guaranteed settlement time. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Pending transfers and arrival estimates",
+      "related_ids": [
+        "KB-TRANSFERS-02",
+        "KB-TRANSFERS-03",
+        "KB-TRANSFERS-04"
+      ]
+    },
+    {
+      "id": "KB-TRANSFERS-02",
+      "title": "Transfer late beyond its estimate",
+      "topic": "transfers",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "If the displayed expected arrival window has passed, contact official support with the transfer reference. Review recipient details before escalating. Do not initiate a duplicate transfer just because the original is delayed. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Transfer late beyond its estimate",
+      "related_ids": [
+        "KB-TRANSFERS-01",
+        "KB-TRANSFERS-03",
+        "KB-TRANSFERS-04"
+      ]
+    },
+    {
+      "id": "KB-TRANSFERS-03",
+      "title": "Completed transfer not received",
+      "topic": "transfers",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "A completed status records the sending-side result and does not prove the recipient sees funds immediately. Ask the recipient to check the destination account and share the in-app confirmation through a trusted channel. Escalate with the transfer reference if unresolved. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Completed transfer not received",
+      "related_ids": [
+        "KB-TRANSFERS-01",
+        "KB-TRANSFERS-02",
+        "KB-TRANSFERS-04"
+      ]
+    },
+    {
+      "id": "KB-TRANSFERS-04",
+      "title": "Cancel or correct a transfer",
+      "topic": "transfers",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Use the transfer details to check whether cancellation is offered. A completed transfer cannot be cancelled through the normal pending-transfer flow. Contact official support urgently for mistaken payments; recovery is not guaranteed and the assistant cannot cancel transfers. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Cancel or correct a transfer",
+      "related_ids": [
+        "KB-TRANSFERS-01",
+        "KB-TRANSFERS-02",
+        "KB-TRANSFERS-03"
+      ]
+    },
+    {
+      "id": "KB-RECIPIENT-DETAILS-01",
+      "title": "Check recipient information",
+      "topic": "recipient_details",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Check recipient name and destination account details in the app before confirming a transfer. A saved recipient may contain outdated details. The assistant does not verify ownership of a real account and must not request full account credentials. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Check recipient information",
+      "related_ids": [
+        "KB-RECIPIENT-DETAILS-02",
+        "KB-RECIPIENT-DETAILS-03",
+        "KB-RECIPIENT-DETAILS-04"
+      ]
+    },
+    {
+      "id": "KB-RECIPIENT-DETAILS-02",
+      "title": "Invalid recipient transfer failures",
+      "topic": "recipient_details",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "An INVALID_RECIPIENT reason means the recorded recipient details could not be verified. Review the details through the app and confirm them with the recipient through a trusted channel. Do not automatically resend until the problem is corrected. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Invalid recipient transfer failures",
+      "related_ids": [
+        "KB-RECIPIENT-DETAILS-01",
+        "KB-RECIPIENT-DETAILS-03",
+        "KB-RECIPIENT-DETAILS-04"
+      ]
+    },
+    {
+      "id": "KB-RECIPIENT-DETAILS-03",
+      "title": "Recipient name mismatch",
+      "topic": "recipient_details",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "If the app warns that a recipient name does not match, stop and verify the intended destination with the recipient. Do not ignore the warning because the amount is small. Official support can explain the warning but cannot guarantee that an account belongs to a particular person. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Recipient name mismatch",
+      "related_ids": [
+        "KB-RECIPIENT-DETAILS-01",
+        "KB-RECIPIENT-DETAILS-02",
+        "KB-RECIPIENT-DETAILS-04"
+      ]
+    },
+    {
+      "id": "KB-RECIPIENT-DETAILS-04",
+      "title": "Recipient detail changes and scams",
+      "topic": "recipient_details",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Treat unexpected requests to change payment details as suspicious. Confirm the change through a previously trusted contact method rather than replying to the same message. If money was already sent, contact official support promptly and retain the transfer reference. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Recipient detail changes and scams",
+      "related_ids": [
+        "KB-RECIPIENT-DETAILS-01",
+        "KB-RECIPIENT-DETAILS-02",
+        "KB-RECIPIENT-DETAILS-03"
+      ]
+    },
+    {
+      "id": "KB-REFUNDS-01",
+      "title": "Merchant refund not yet visible",
+      "topic": "refunds",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "A merchant refund appears only when it is received and processed. Ask the merchant for refund confirmation and check the original payment details. A merchant promise does not establish that funds have reached FablePay. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Merchant refund not yet visible",
+      "related_ids": [
+        "KB-REFUNDS-02",
+        "KB-REFUNDS-03",
+        "KB-REFUNDS-04"
+      ]
+    },
+    {
+      "id": "KB-REFUNDS-02",
+      "title": "Refund timing and escalation",
+      "topic": "refunds",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Use the refund estimate shown in the app or the merchant confirmation. This handbook supplies no universal refund deadline. If the displayed estimate has passed, contact official support with the original payment reference and confirmation. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Refund timing and escalation",
+      "related_ids": [
+        "KB-REFUNDS-01",
+        "KB-REFUNDS-03",
+        "KB-REFUNDS-04"
+      ]
+    },
+    {
+      "id": "KB-REFUNDS-03",
+      "title": "Partial or unexpected refund amount",
+      "topic": "refunds",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Compare the refund confirmation with the original payment. A partial refund may cover only part of an order; ask the merchant to explain the amount. Currency conversion may also affect the displayed value. Do not promise reimbursement of any difference. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Partial or unexpected refund amount",
+      "related_ids": [
+        "KB-REFUNDS-01",
+        "KB-REFUNDS-02",
+        "KB-REFUNDS-04"
+      ]
+    },
+    {
+      "id": "KB-REFUNDS-04",
+      "title": "Refunds to replaced cards",
+      "topic": "refunds",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Keep the original payment reference when a card has been replaced. A refund may still be associated with the original purchase; do not ask the merchant to collect new card security details in chat. Contact official support if the refund cannot be located. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Refunds to replaced cards",
+      "related_ids": [
+        "KB-REFUNDS-01",
+        "KB-REFUNDS-02",
+        "KB-REFUNDS-03"
+      ]
+    },
+    {
+      "id": "KB-DISPUTES-01",
+      "title": "Unrecognized card payments",
+      "topic": "disputes",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "If a card payment is unfamiliar, freeze the card and review merchant details, subscriptions and household use. If it remains unrecognized, report it through official in-app support promptly. The assistant cannot determine fraud or submit a dispute. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Unrecognized card payments",
+      "related_ids": [
+        "KB-DISPUTES-02",
+        "KB-DISPUTES-03",
+        "KB-DISPUTES-04"
+      ]
+    },
+    {
+      "id": "KB-DISPUTES-02",
+      "title": "Goods or services disputes",
+      "topic": "disputes",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "For a recognized purchase with missing or faulty goods, first contact the merchant and keep evidence of attempts to resolve it. Use official in-app support to ask about dispute options if unresolved. A dispute is not a guaranteed refund. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Goods or services disputes",
+      "related_ids": [
+        "KB-DISPUTES-01",
+        "KB-DISPUTES-03",
+        "KB-DISPUTES-04"
+      ]
+    },
+    {
+      "id": "KB-DISPUTES-03",
+      "title": "Duplicate card payments",
+      "topic": "disputes",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Compare references and statuses before treating two entries as a duplicate. A pending authorization and a completed payment can appear separately. Contact the merchant or official support if two completed charges remain unexplained. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Duplicate card payments",
+      "related_ids": [
+        "KB-DISPUTES-01",
+        "KB-DISPUTES-02",
+        "KB-DISPUTES-04"
+      ]
+    },
+    {
+      "id": "KB-DISPUTES-04",
+      "title": "Dispute evidence and deadlines",
+      "topic": "disputes",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Keep receipts, merchant correspondence and transaction references. Ask official support for the deadline and eligibility that apply to the specific case; this handbook does not set a universal chargeback deadline. Do not send passwords, PINs or full card numbers. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Dispute evidence and deadlines",
+      "related_ids": [
+        "KB-DISPUTES-01",
+        "KB-DISPUTES-02",
+        "KB-DISPUTES-03"
+      ]
+    },
+    {
+      "id": "KB-TOPUPS-01",
+      "title": "Card top-up declined",
+      "topic": "topups",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Check the funding card status, available funds and issuer approval in the funding bank app. A card top-up decline does not prove FablePay received money. Do not repeatedly retry or use another person\u2019s card to bypass a decline. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Card top-up declined",
+      "related_ids": [
+        "KB-TOPUPS-02",
+        "KB-TOPUPS-03",
+        "KB-TOPUPS-04"
+      ]
+    },
+    {
+      "id": "KB-TOPUPS-02",
+      "title": "Top-up charged but balance unchanged",
+      "topic": "topups",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Compare the funding-card entry with the top-up status in the app. A pending authorization is not necessarily a completed top-up. Retain the top-up reference and contact official support if the displayed estimate has passed. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Top-up charged but balance unchanged",
+      "related_ids": [
+        "KB-TOPUPS-01",
+        "KB-TOPUPS-03",
+        "KB-TOPUPS-04"
+      ]
+    },
+    {
+      "id": "KB-TOPUPS-03",
+      "title": "Supported top-up methods",
+      "topic": "topups",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Open Add money to see the funding methods currently offered for your account. Availability can depend on account eligibility and the funding provider. The assistant cannot enable an unavailable method or guarantee that every card is supported. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Supported top-up methods",
+      "related_ids": [
+        "KB-TOPUPS-01",
+        "KB-TOPUPS-02",
+        "KB-TOPUPS-04"
+      ]
+    },
+    {
+      "id": "KB-TOPUPS-04",
+      "title": "Top-up limits and fees",
+      "topic": "topups",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Review the amount, any displayed fee and the applicable limit before confirming Add money. The funding issuer may apply separate charges. Do not split a payment into repeated top-ups to bypass a limit or promise that all top-ups are free. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Top-up limits and fees",
+      "related_ids": [
+        "KB-TOPUPS-01",
+        "KB-TOPUPS-02",
+        "KB-TOPUPS-03"
+      ]
+    },
+    {
+      "id": "KB-FEES-FX-01",
+      "title": "Review fees before confirming",
+      "topic": "fees_fx",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "FablePay displays applicable product charges before confirmation when available. Check the current in-app quote rather than relying on a past transaction or a generic dataset answer. The assistant must not invent a fixed fee or claim that every service is free. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Review fees before confirming",
+      "related_ids": [
+        "KB-FEES-FX-02",
+        "KB-FEES-FX-03",
+        "KB-FEES-FX-04"
+      ]
+    },
+    {
+      "id": "KB-FEES-FX-02",
+      "title": "Currency conversion quotes",
+      "topic": "fees_fx",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Review the exchange rate, source currency, destination currency and any displayed conversion fee before confirming. Rates can change between quotes. The assistant cannot provide a live exchange rate or guarantee a rate from an earlier quote. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Currency conversion quotes",
+      "related_ids": [
+        "KB-FEES-FX-01",
+        "KB-FEES-FX-03",
+        "KB-FEES-FX-04"
+      ]
+    },
+    {
+      "id": "KB-FEES-FX-03",
+      "title": "Merchant currency conversion choices",
+      "topic": "fees_fx",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "A merchant or ATM may offer conversion into your home currency. Compare the displayed terms with paying in the local currency before deciding. This handbook does not guarantee which option is cheaper for every transaction. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Merchant currency conversion choices",
+      "related_ids": [
+        "KB-FEES-FX-01",
+        "KB-FEES-FX-02",
+        "KB-FEES-FX-04"
+      ]
+    },
+    {
+      "id": "KB-FEES-FX-04",
+      "title": "Unexpected third-party charges",
+      "topic": "fees_fx",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "A merchant, ATM operator or funding bank may impose a charge separate from a FablePay product fee. Compare receipts and transaction details, then contact the charging party or official support if unclear. Do not promise that a third-party charge will be reversed. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Unexpected third-party charges",
+      "related_ids": [
+        "KB-FEES-FX-01",
+        "KB-FEES-FX-02",
+        "KB-FEES-FX-03"
+      ]
+    },
+    {
+      "id": "KB-LIMITS-01",
+      "title": "Find applicable account limits",
+      "topic": "limits",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Open Limits in the app to view the limits currently applicable to your account and transaction type. Limits may depend on account eligibility. The assistant cannot infer a personal limit from an intent label or offer a universal amount. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Find applicable account limits",
+      "related_ids": [
+        "KB-LIMITS-02",
+        "KB-LIMITS-03",
+        "KB-LIMITS-04"
+      ]
+    },
+    {
+      "id": "KB-LIMITS-02",
+      "title": "Spending limit reached",
+      "topic": "limits",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Review the remaining allowance and any displayed reset time in the app. A spending-limit decline can occur even with sufficient balance. The assistant cannot reset the allowance or increase a limit. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Spending limit reached",
+      "related_ids": [
+        "KB-LIMITS-01",
+        "KB-LIMITS-03",
+        "KB-LIMITS-04"
+      ]
+    },
+    {
+      "id": "KB-LIMITS-03",
+      "title": "Limit increase requests",
+      "topic": "limits",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "If the app offers a limit-change request, review its requirements and submit through that flow. Approval is not guaranteed. Do not send identity documents or sensitive credentials to this assistant. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Limit increase requests",
+      "related_ids": [
+        "KB-LIMITS-01",
+        "KB-LIMITS-02",
+        "KB-LIMITS-04"
+      ]
+    },
+    {
+      "id": "KB-LIMITS-04",
+      "title": "Avoid limit circumvention",
+      "topic": "limits",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Do not split or disguise transactions to bypass a displayed restriction. If a legitimate payment exceeds a limit, use official support to understand available options. The assistant cannot provide a workaround that evades account controls. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Avoid limit circumvention",
+      "related_ids": [
+        "KB-LIMITS-01",
+        "KB-LIMITS-02",
+        "KB-LIMITS-03"
+      ]
+    },
+    {
+      "id": "KB-ACCOUNT-SECURITY-01",
+      "title": "Account access problems",
+      "topic": "account_security",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Use the official app recovery flow when you cannot sign in. If you no longer control the registered contact method, contact official support through a trusted channel. Never share a password or one-time code with the assistant. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Account access problems",
+      "related_ids": [
+        "KB-ACCOUNT-SECURITY-02",
+        "KB-ACCOUNT-SECURITY-03",
+        "KB-ACCOUNT-SECURITY-04"
+      ]
+    },
+    {
+      "id": "KB-ACCOUNT-SECURITY-02",
+      "title": "Identity verification requests",
+      "topic": "account_security",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Submit identity information only through the designated in-app verification flow. The assistant cannot approve verification or inspect real identity documents. Contact official support if the app request is unclear or has exceeded its displayed estimate. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Identity verification requests",
+      "related_ids": [
+        "KB-ACCOUNT-SECURITY-01",
+        "KB-ACCOUNT-SECURITY-03",
+        "KB-ACCOUNT-SECURITY-04"
+      ]
+    },
+    {
+      "id": "KB-ACCOUNT-SECURITY-03",
+      "title": "Suspicious messages and impersonation",
+      "topic": "account_security",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "Do not disclose passwords, PINs, CVVs or one-time codes to anyone contacting you unexpectedly. Open the app directly rather than following a suspicious link. If credentials may have been exposed, use the official recovery and support channels promptly. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Suspicious messages and impersonation",
+      "related_ids": [
+        "KB-ACCOUNT-SECURITY-01",
+        "KB-ACCOUNT-SECURITY-02",
+        "KB-ACCOUNT-SECURITY-04"
+      ]
+    },
+    {
+      "id": "KB-ACCOUNT-SECURITY-04",
+      "title": "Assistant scope and privacy",
+      "topic": "account_security",
+      "version": "1.0.0",
+      "effective_date": "2026-11-19",
+      "content": "FablePay is a fictional demonstration. All available card and transaction records are synthetic and read-only. The assistant cannot access real accounts, move money, change card states, submit disputes or guarantee financial outcomes. Use your actual provider\u2019s official support for real account issues. These are fictional FablePay procedures, not a real bank policy.",
+      "source": "FablePay fictional handbook \u00b7 Assistant scope and privacy",
+      "related_ids": [
+        "KB-ACCOUNT-SECURITY-01",
+        "KB-ACCOUNT-SECURITY-02",
+        "KB-ACCOUNT-SECURITY-03"
+      ]
+    }
+  ]
+}

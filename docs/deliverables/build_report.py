@@ -1,4 +1,4 @@
-"""Render the reviewable engineering report source to a seven-page PDF."""
+"""Render the reviewable engineering report source to a PDF."""
 import json
 from datetime import date
 from pathlib import Path

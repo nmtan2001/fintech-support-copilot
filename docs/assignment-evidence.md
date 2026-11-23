@@ -35,7 +35,7 @@ baseline-artifact test skipped. The real-model benchmark passed separately.
 
 ## Deliverables and repeatability
 
-- [Seven-page technical report](deliverables/engineering-report.pdf)
+- [Eight-page technical report](deliverables/engineering-report.pdf)
 - [Ten-slide editable presentation](deliverables/engineering-presentation.pptx)
 - [Reproduction, token renewal and temporary runner guide](reproduce-and-renew.md)
 - [Actual expirations and runtime state](runtime-state.json)
@@ -46,8 +46,7 @@ screenshots or these release runs do not replace that exercise. The rehearsal
 guide explains how to run it through the same pipeline.
 
 Original `submission/` and `slide-deck/` documents are preserved. The deployed
-cluster is local and needs Docker and the host running. No public ingress,
-managed high availability or production financial suitability is claimed.
+cluster is local and needs Docker and the host running. The API has no public ingress. The optional showcase tunnel exposes only Streamlit. The local cluster does not establish managed high availability or production financial suitability.
 
 Final release reports: [model gate](evidence/v1.2.0-model-evaluation.json),
 [load sample](evidence/v1.2.0-load-measurement.json),

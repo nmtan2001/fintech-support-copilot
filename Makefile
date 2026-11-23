@@ -1,9 +1,9 @@
-PYTHON ?= python3
+PYTHON ?= $(if $(wildcard .venv/bin/python3),.venv/bin/python3,python3)
 APP_VERSION ?= $(shell cat VERSION)
 APP_COMMIT ?= $(shell git rev-parse HEAD)
 IMAGE ?= fintech-support-copilot:$(APP_VERSION)
 
-.PHONY: test lint check build run verify
+.PHONY: test lint check build run verify showcase showcase-check
 
 test:
 	$(PYTHON) -m pytest -q
@@ -21,3 +21,9 @@ run:
 
 verify:
 	$(PYTHON) scripts/verify_release.py --version $(APP_VERSION) --commit $(APP_COMMIT) --wait-seconds 600
+
+showcase:
+	$(PYTHON) -m scripts.showcase
+
+showcase-check:
+	$(PYTHON) -m scripts.showcase --check

@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-21T23:56:56.499993+00:00",
+  "title": "Design System: FablePay Support Assistant",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "composer-ambient",
+        "value": "0 4px 16px rgba(26, 45, 34, .06)",
+        "purpose": "Bottom composer only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "button-state",
+        "value": "background-color 150ms ease-out, border-color 150ms ease-out",
+        "purpose": "Hover transition; removed by prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "small-screen",
+        "value": "640px"
+      }
+    ],
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Support green"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Charcoal ink"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted gray-green"
+      },
+      "sidebar": {
+        "role": "neutral",
+        "displayName": "Sidebar mist"
+      }
+    }
+  },
+  "components": [
+    {
+      "name": "Outlined action",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Sidebar action or starter prompt. Runtime supplies control padding.",
+      "html": "<button class=\"ds-action\">New conversation</button>",
+      "css": ".ds-action { font-family: \"Segoe UI\", system-ui, sans-serif; border: 1px solid #ccd5ce; border-radius: 10px; color: var(--chat-ink, #202523); background: #ffffff; transition: background-color 150ms ease-out, border-color 150ms ease-out; } .ds-action:hover { background: #eaf1ec; border-color: #8fae9c; color: #184a35; } .ds-action:focus-visible { outline: 2px solid var(--chat-accent, #24624b); outline-offset: 3px; } .ds-action:disabled { color: #727b76; background: #eff2ef; border-color: var(--chat-line, #e2e7e3); } @media (prefers-reduced-motion: reduce) { .ds-action { transition: none; } }"
+    },
+    {
+      "name": "Composer surface",
+      "kind": "input",
+      "refersTo": "composer",
+      "description": "Native textarea preview of the composer surface. Streamlit supplies the runtime submit control.",
+      "html": "<div class=\"ds-composer\"><textarea class=\"ds-composer-text\" aria-label=\"Message FablePay support\" placeholder=\"Message FablePay support\" maxlength=\"2000\"></textarea></div>",
+      "css": ".ds-composer { border: 1px solid #bccbc0; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 16px rgba(26, 45, 34, .06); } .ds-composer:focus-within { outline: 2px solid var(--chat-accent, #24624b); outline-offset: 2px; } .ds-composer-text { font-family: \"Segoe UI\", system-ui, sans-serif; color: var(--chat-ink, #202523); caret-color: var(--chat-accent, #24624b); background: transparent; border: none; border-radius: 16px; } .ds-composer-text::placeholder { color: var(--chat-muted, #59645e); opacity: 1; }"
+    },
+    {
+      "name": "User message",
+      "kind": "custom",
+      "refersTo": "user-message",
+      "description": "Right-aligned tinted bubble with a visible speaker label.",
+      "html": "<div class=\"ds-user\"><span class=\"ds-user-caption\">You</span><div>What is the status of my transfer?</div></div>",
+      "css": ".ds-user { font-family: \"Segoe UI\", system-ui, sans-serif; color: var(--chat-ink, #202523); margin-left: auto; max-width: 85%; background: #edf3ee; border-radius: 16px; padding: 1rem 1.2rem; line-height: 1.65; } .ds-user-caption { font-size: .75rem; color: var(--chat-muted, #59645e); line-height: 1.5; opacity: 1; }"
+    },
+    {
+      "name": "Assistant text surface",
+      "kind": "custom",
+      "description": "Open transcript body and caption. Runtime also supplies the support-agent avatar.",
+      "html": "<div class=\"ds-assistant\"><span class=\"ds-assistant-caption\">FablePay assistant</span><p>Ask about a payment, track a transfer, or get help with your card.</p></div>",
+      "css": ".ds-assistant { font-family: \"Segoe UI\", system-ui, sans-serif; color: var(--chat-ink, #202523); max-width: 75ch; line-height: 1.65; padding: 1rem 0; background: transparent; } .ds-assistant-caption { color: var(--chat-muted, #59645e); font-size: .75rem; line-height: 1.5; opacity: 1; }"
+    },
+    {
+      "name": "Support heading",
+      "kind": "custom",
+      "description": "Compact transcript title and demo metadata.",
+      "html": "<div class=\"ds-heading\"><h1 class=\"ds-heading-title\">Support assistant</h1><span class=\"ds-heading-meta\">AI \u00b7 FablePay demo</span></div>",
+      "css": ".ds-heading { font-family: \"Segoe UI\", system-ui, sans-serif; color: var(--chat-ink, #202523); display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding-bottom: 1.2rem; border-bottom: 1px solid var(--chat-line, #e2e7e3); } .ds-heading-title { font-size: 1.05rem; font-weight: 600; padding: 0; margin: 0; } .ds-heading-meta { font-size: .8rem; color: var(--chat-muted, #59645e); } @media (max-width: 640px) { .ds-heading { align-items: flex-start; flex-direction: column; gap: .25rem; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Conversation first",
+    "overview": "This describes the shipped interface rather than proposing a new brand identity. FablePay is a fictional finance support demo with one active conversation. A white transcript, pale sidebar, restrained green accent, and compact support header keep the question and answer central.\n\nUseful task prompts introduce the empty state. Sources, record details, review details, and diagnostics are progressively disclosed. Demo ownership and account limitations remain visible in the sidebar. This documentation records the existing presentation; it does not change backend or API semantics.",
+    "keyCharacteristics": [
+      "One active conversation with a bottom composer.",
+      "Quiet neutral surfaces and dark readable text.",
+      "Three task prompts before the first exchange.",
+      "Collapsed supporting details and sidebar diagnostics."
+    ],
+    "rules": [],
+    "dos": [
+      "**Do** keep one active transcript and a bottom composer.",
+      "**Do** preserve full-opacity captions and the 75ch assistant maximum.",
+      "**Do** keep evidence and diagnostics available through collapsed details.",
+      "**Do** retain visible fictional-demo context and account limitations.",
+      "**Do** preserve keyboard focus, disabled states, and reduced-motion behavior."
+    ],
+    "donts": [
+      "**Don't** introduce multiple-conversation navigation into this experience.",
+      "**Don't** expand raw records or technical diagnostics into the default answer view.",
+      "**Don't** imply that local review requests contact a real bank."
+    ]
+  }
+}

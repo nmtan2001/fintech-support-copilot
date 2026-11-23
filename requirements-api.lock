@@ -20,6 +20,10 @@ anyio==4.16.0 \
     #   fastapi
     #   httpx
     #   starlette
+async-timeout==5.0.1 \
+    --hash=sha256:39e3809566ff85354557ec2398b55e096c8364bacac9405a7a1fa429e77fe76c \
+    --hash=sha256:d9321a7a3d5a6a5e187e824d2fa0793ce379a202935782d555d6e9d2735677d3
+    # via redis
 certifi==2026.10.23 \
     --hash=sha256:a9895e6e2758b371e0545e321a3a8fd1fcfd9829ada8824a936dfb16aaaf36cd \
     --hash=sha256:e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1
@@ -517,6 +521,10 @@ pyyaml==6.0.3 \
     # via
     #   huggingface-hub
     #   transformers
+redis==7.3.0 \
+    --hash=sha256:4d1b768aafcf41b01022410b3cc4f15a07d9b3d6fe0c66fc967da2c88e551034 \
+    --hash=sha256:9d4fcb002a12a5e3c3fbe005d59c48a2cc231f87fbb2f6b70c2d89bb64fec364
+    # via fintech-support-copilot (pyproject.toml)
 regex==2026.11.15 \
     --hash=sha256:03e3e31271f40e17f038e2810014a15b3e9b0950c8dac5ca910a3375ffc7b112 \
     --hash=sha256:058e6aa045d02985490d6622b986cb7db25929890384faf642233539439b804c \
@@ -806,6 +814,10 @@ tokenizers==0.23.3 \
     --hash=sha256:ec82e80e65a862275b97c3d90b7a523df8d9519ee48aeb4e9625b2cc909274e0 \
     --hash=sha256:efa3d7318406b4d115dce61ad5061953f1f44b128e79c020ce4615d763e23b6e
     # via transformers
+toml==0.10.2 \
+    --hash=sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b \
+    --hash=sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f
+    # via fintech-support-copilot (pyproject.toml)
 torch==2.11.0+cpu \
     --hash=sha256:1abeaa46fa7532ed35ed79146f4de5d7a9d4b30462c98052ea4ddfe781ea3eca \
     --hash=sha256:2db3ae5404e32cb42b5fcbd94f13607761eaec0cf1687fde95095289d1e26cfb \

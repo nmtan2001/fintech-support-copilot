@@ -25,10 +25,11 @@ LABEL org.opencontainers.image.title="Fintech Support Copilot" \
 ENV APP_VERSION=${APP_VERSION} \
     APP_COMMIT=${APP_COMMIT}
 
-COPY pyproject.toml README.md api.py VERSION model-manifest.json ./
+COPY pyproject.toml README.md api.py VERSION model-manifest.json retrieval-manifest.json ./
 COPY fintech_support/ ./fintech_support/
 COPY evaluate_smoke.py evaluate_retrieval.py analyze_errors.py ./
 COPY data/faq/ ./data/faq/
+COPY data/knowledge/ ./data/knowledge/
 COPY data/transactions/ ./data/transactions/
 COPY data/evaluation/ ./data/evaluation/
 COPY scripts/ ./scripts/
