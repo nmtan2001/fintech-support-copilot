@@ -5,7 +5,7 @@
     "leftTitle": "DevOps + MLOps",
     "left": [
       "CPU-served DistilBERT for 77 banking intents",
-      "FastAPI service and Streamlit workbench",
+      "FastAPI service and Streamlit chat",
       "Synthetic records; read-only tools"
     ],
     "rightTitle": "Engineering goal",
@@ -16,19 +16,19 @@
     ]
   },
   {
-    "title": "Two layers, one release contract",
-    "kicker": "SCOPE",
-    "leftTitle": "DevOps",
+    "title": "v1.3.0 adds conversational support",
+    "kicker": "CURRENT RELEASE CANDIDATE",
+    "leftTitle": "Conversation flow",
     "left": [
-      "Pull requests, tests and lint",
-      "Scanned, versioned container images",
-      "Kubernetes rollout and recovery"
+      "Streamlit chat calls the Kubernetes API",
+      "Redis retains conversation state",
+      "Read-only lookups use scoped demo records"
     ],
-    "rightTitle": "MLOps",
+    "rightTitle": "Grounded responses",
     "right": [
-      "Pinned model revision and weight fingerprint",
-      "Checksum-pinned classification benchmark",
-      "Model gates and inference signals"
+      "Z.ai drafts and verifies answers",
+      "Verified record facts survive rejection",
+      "Hosted v1.3.0 release evidence pending"
     ]
   },
   {

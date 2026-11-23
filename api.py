@@ -12,18 +12,20 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, Header, HTTPException, Request, Response
 from prometheus_client import CollectorRegistry, Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from fintech_support.copilot import (
-    DEFAULT_NVIDIA_MODEL,
-    DEFAULT_NVIDIA_TOOL_MODEL,
     IntentClassifier,
     SupportCopilot,
 )
 from fintech_support.demo_tools import SUPPORTED_INTENTS, DemoBankingTools, initialize_demo_database
 from fintech_support.retrieval import FAQRetriever, load_faqs
+from fintech_support.conversations import create_service
+from fintech_support.sessions import SessionBusy, SessionLimit, SessionNotFound, SessionUnavailable
+from fintech_support.settings import get_secret
+from fintech_support.limits import CapacityExceeded
 
 
 ROOT = Path(__file__).resolve().parent
@@ -98,7 +100,9 @@ def capabilities():
     return {"lookup_intents": sorted(SUPPORTED_INTENTS),
             "reference_examples": ["TX-CARD-001", "TX-TRF-001", "CARD-001"],
             "synthetic_only": True, "read_only": True,
-            "generation_available": bool(os.environ.get("NVIDIA_API_KEY"))}
+            "generation_available": bool(get_secret("ZAI_API_KEY", root=ROOT)),
+            "conversation_available": True, "generation_provider": "zai",
+            "handbook_backend": os.environ.get("HANDBOOK_BACKEND", "lexical")}
 
 
 class SupportRequest(BaseModel):
@@ -200,23 +204,14 @@ def demo_status(reference: str):
 @app.post("/support")
 def support(payload: SupportRequest):
     if payload.llm_select_tool and not payload.use_llm:
-        raise HTTPException(status_code=400, detail="Enable use_llm to select tools with NVIDIA NIM")
-    if (payload.use_llm or payload.llm_select_tool) and not (
-        os.environ.get("NVIDIA_API_KEY")
-    ):
-        raise HTTPException(status_code=400, detail="Set NVIDIA_API_KEY to use generation")
+        raise HTTPException(status_code=400, detail="use_llm and NVIDIA tool selection are disabled")
+    if payload.use_llm:
+        raise HTTPException(status_code=400, detail="External generation is disabled; local evidence is used")
     try:
         result = get_copilot().respond(
             payload.question,
             record_reference=payload.record_reference,
             min_confidence=payload.min_confidence,
-            llm_model=DEFAULT_NVIDIA_MODEL if (payload.use_llm or payload.llm_select_tool) else None,
-            llm_api_key=os.environ.get("NVIDIA_API_KEY") if (payload.use_llm or payload.llm_select_tool) else None,
-            llm_select_tool=payload.llm_select_tool,
-            llm_tool_model=(
-                DEFAULT_NVIDIA_TOOL_MODEL
-                if payload.llm_select_tool else None
-            ),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -231,7 +226,8 @@ def support(payload: SupportRequest):
         "status": result.status,
         "answer": result.answer,
         "retrieved_sources": [
-            {"id": hit.faq.id, "score": hit.score, "source": hit.faq.source}
+            {"id": hit.faq.id, "score": hit.score, "source": hit.faq.source,
+             "title": hit.faq.title, "content": hit.faq.content, "intents": list(hit.faq.intents)}
             for hit in result.retrieved
         ],
         "tool_result": asdict(result.tool_result) if result.tool_result else None,
@@ -260,3 +256,89 @@ def classify_batch(payload: BatchClassificationRequest):
     return {"count": len(predictions), "predictions": [
                 {"intent": row.intent, "confidence_uncalibrated": row.confidence} for row in predictions],
             "model_id": MODEL_ID, "model_revision": MODEL_REVISION, "synthetic_only": True}
+
+
+@lru_cache(maxsize=1)
+def get_conversation_service():
+    return create_service(ROOT, tools=get_demo_tools())
+
+
+class ConversationMessage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    message: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+    references: list[Annotated[str, StringConstraints(pattern=r"^(?:TX-CARD|TX-TRF|CARD)-\d{3}$")]] = Field(
+        default_factory=list, max_length=3)
+
+
+def conversation_token(authorization):
+    if not authorization or not authorization.startswith("Bearer ") or len(authorization[7:]) < 1:
+        raise HTTPException(status_code=401, detail="A conversation bearer token is required")
+    if len(authorization) > 200:
+        raise HTTPException(status_code=401, detail="Invalid conversation bearer token")
+    return authorization[7:]
+
+
+def conversation_call(action):
+    try:
+        return action()
+    except CapacityExceeded as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from None
+    except SessionNotFound:
+        raise HTTPException(status_code=404, detail="Conversation expired or was not found") from None
+    except SessionBusy:
+        raise HTTPException(status_code=409, detail="Wait for the current response before sending another message") from None
+    except SessionLimit:
+        raise HTTPException(status_code=429, detail="Conversation turn limit reached. Start a new conversation") from None
+    except SessionUnavailable:
+        raise HTTPException(status_code=503, detail="Conversation storage is temporarily unavailable") from None
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Reference is not available for this demo profile") from None
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except (RuntimeError, OSError):
+        LOGGER.error("Conversation could not be completed; check provider, knowledge and storage configuration")
+        raise HTTPException(status_code=503, detail="Conversation service is temporarily unavailable") from None
+
+
+class ConversationCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    customer_id: str = Field(default="DEMO-ALPHA", min_length=1, max_length=80)
+
+
+@app.get("/demo-customers")
+def demo_customers():
+    return conversation_call(lambda: {"synthetic_only": True, "customers": get_conversation_service().profiles()})
+
+
+@app.post("/conversations", status_code=201)
+def create_conversation(payload: ConversationCreate | None = None):
+    customer_id = payload.customer_id if payload else "DEMO-ALPHA"
+    return conversation_call(lambda: get_conversation_service().create(customer_id=customer_id))
+
+
+@app.get("/conversations/{sid}")
+def get_conversation(sid: str, authorization: str | None = Header(default=None)):
+    token = conversation_token(authorization)
+    return conversation_call(lambda: get_conversation_service().get(sid, token))
+
+
+@app.get("/conversations/{sid}/cases")
+def conversation_cases(sid: str, authorization: str | None = Header(default=None)):
+    token = conversation_token(authorization)
+    return conversation_call(lambda: {"synthetic_only": True, "cases": get_conversation_service().cases(sid, token)})
+
+
+@app.delete("/conversations/{sid}", status_code=204)
+def delete_conversation(sid: str, authorization: str | None = Header(default=None)):
+    token = conversation_token(authorization)
+    conversation_call(lambda: get_conversation_service().delete(sid, token))
+    return Response(status_code=204)
+
+
+@app.post("/conversations/{sid}/messages")
+def conversation_message(sid: str, payload: ConversationMessage, authorization: str | None = Header(default=None)):
+    token = conversation_token(authorization)
+    response = conversation_call(lambda: get_conversation_service().respond(
+        sid, token, payload.message, references=payload.references))
+    SUPPORT_RESPONSES.labels("conversation", response["status"]).inc()
+    return response

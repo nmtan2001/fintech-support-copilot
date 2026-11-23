@@ -9,13 +9,7 @@ The support workflow uses nine authored help entries and 30 synthetic card and t
 1. Predicts one of 77 BANKING77 intents with fine-tuned DistilBERT.
 2. Retrieves intent-scoped help text with TF-IDF, MiniLM semantic similarity, or hybrid reciprocal-rank fusion.
 3. Checks a supplied reference against a local SQLite database for four supported intents. Python validates the intent and reference, and the query is read-only.
-4. When a supported reference is present, the app can send a constrained function call through NVIDIA NIM. A second NVIDIA NIM model can draft a reply from retrieved help text.
-
-The Streamlit workbench includes prepared support scenarios, a per-request trace of classification, retrieval, tool routing, and grounding, plus a model scorecard. Hybrid retrieval first gates the FAQ corpus by predicted intent, then combines TF-IDF and MiniLM rankings with reciprocal-rank fusion (RRF, k=60). Its semantic candidate floor of 0.35 is a demo heuristic, not a calibrated relevance threshold. The scorecard measures the active retriever on 22 relevant FAQ queries and four authored out-of-scope queries. It labels confidence and retrieval scores as model signals rather than factuality guarantees, and makes the synthetic-data boundary visible throughout the demo.
-
-Supported lookup intents are `declined_card_payment`, `pending_transfer`, `transfer_not_received_by_recipient`, and `lost_or_stolen_card`. Other BANKING77 intents are classified, but do not have a complete support workflow.
-
-The Streamlit app defaults to the fine-tuned checkpoint at [Hugging Face](https://huggingface.co/nmtan2001/fintech-support-distilbert) and a local extractive response path. If `NVIDIA_API_KEY` is set, the sidebar can enable an NVIDIA-generated answer or an NVIDIA-selected allowlisted function call followed by an answer. The app warns when a mode sends the request to NVIDIA NIM; each function call and reference is still validated in Python before querying SQLite. Without the key, the local demo remains fully usable.
+4. Supports a separate multi-turn chat over handbook evidence and customer-scoped sample records. Z.ai drafts and verifies answers. Verified record facts remain available when generated guidance fails verification.
 
 ## Results
 
@@ -32,30 +26,31 @@ TF-IDF reached Recall@1 of 90.9% and Recall@3 of 100% on the 22 relevant FAQ que
 
 ## Run the Streamlit app
 
-Use Python 3.10 or later.
+Use Python 3.11 or newer. For a standalone chat UI:
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-streamlit run app.py
+.venv/bin/python3 -m pip install -e '.[demo]'
+.venv/bin/python3 -m streamlit run app.py
 ```
 
-The app loads a local model from `outputs/distilbert/model/` when present. Otherwise, it downloads the checkpoint named by `HF_MODEL_ID`, which defaults to the private project checkpoint above; set HF_TOKEN for access. If the DistilBERT dependencies are missing and `outputs/baseline/model.joblib` exists, the app uses the baseline classifier.
+Use `.streamlit/secrets.toml.example` as the template for the ignored
+`.streamlit/secrets.toml`. Set `ZAI_API_KEY` for generated answers. Set
+`SUPPORT_API_URL` to use an existing API instead of the local chat service.
 
-TF-IDF remains the default retrieval mode. The Streamlit `requirements.txt` includes Sentence Transformers so the MiniLM semantic and hybrid modes are available in the demo. If installing through project extras instead, use `python -m pip install -e ".[demo,semantic,inference]"`. The MiniLM model downloads from Hugging Face the first time one of those modes is used; question embedding and retrieval then run locally.
+For the public showcase, start Docker Desktop with WSL integration enabled,
+install `kind`, `kubectl`, and `cloudflared` (or use the bundled tools under
+`.runtime/tools`), and configure `HF_TOKEN` and `ZAI_API_KEY`.
 
-Set optional configuration in your environment or in `.streamlit/secrets.toml`:
-
-```toml
-HF_MODEL_ID = "nmtan2001/fintech-support-distilbert"
-# HF_TOKEN = "your Hugging Face token, if needed"
-# HF_MODEL_REVISION = "main"
-# NVIDIA_API_KEY = "your NVIDIA API key"
+```bash
+make showcase-check
+make showcase
 ```
 
-Keep API keys out of Git. With no NVIDIA key, intent classification, FAQ retrieval, and the deterministic response still work.
+Open the temporary Cloudflare URL printed after startup checks pass. Keep the
+terminal open during the demo. Ctrl+C stops the UI and tunnel, scales down the
+API and Redis, and retains the cluster. Use the GitHub Actions workflow for the
+graded automated release demonstration.
 
 ## Run the API
 
@@ -81,7 +76,8 @@ curl -X POST http://127.0.0.1:8000/support \
   -d '{"question":"Why was my TX-CARD-001 card payment declined?"}'
 ```
 
-The request can also include `record_reference`, `min_confidence`, `use_llm`, and `llm_select_tool`. NVIDIA calls require `NVIDIA_API_KEY`; set `use_llm` to `true` to generate an answer, and set both `use_llm` and `llm_select_tool` to `true` to ask NVIDIA NIM to select the allowed lookup function.
+The request can also include `record_reference` and `min_confidence`.
+Use `POST /conversations` and `POST /conversations/{sid}/messages` for chat.
 
 ## Train and evaluate
 
@@ -132,12 +128,10 @@ The FAQ text and lookup records are project fixtures. They are not policies or a
 ## Links
 
 - Code: [github.com/nmtan2001/fintech-support-copilot](https://github.com/nmtan2001/fintech-support-copilot)
-- Live app: [Streamlit demo](https://fintech-support-copilot-wrcv8mcbksylppx5oba8dm.streamlit.app)
 
 ## DevOps and MLOps delivery
 
-The deployment serves DistilBERT on CPU through FastAPI. Optional NVIDIA answer
-and tool selection calls remain external. The private Hugging Face checkpoint
+The deployment serves DistilBERT on CPU through FastAPI. The conversational assistant uses Z.ai remotely. The private Hugging Face checkpoint
 requires a read token in HF_TOKEN. Its exact revision is recorded in
 [model-manifest.json](model-manifest.json); production containers use that revision.
 

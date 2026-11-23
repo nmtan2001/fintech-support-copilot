@@ -25,7 +25,7 @@ accepted before assessment; deployment secrets should remain private.
 Create `feature/assessment-update` from current main. Make a small observable
 application change, such as adding a useful field to `/capabilities`, and update
 its existing HTTP test. Increase both `VERSION` and `pyproject.toml` to a new
-unused version, for example 1.3.0 after the recorded 1.2.0 release. Run `make check`,
+unused version, incrementing the version on current main. Run `make check`,
 push and open a PR. Explain the diff and show successful required checks before
 merging. This must change application source, because docs-only pushes do not
 deploy.

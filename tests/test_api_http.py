@@ -69,6 +69,8 @@ def test_support_http_contract(client):
     assert body["synthetic_only"] is True
     assert body["tool_result"]["reason_code"] == "CARD_FROZEN"
     assert body["retrieved_sources"]
+    assert body["retrieved_sources"][0]["content"]
+    assert body["retrieved_sources"][0]["title"]
     assert client.get("/faqs").json()["count"] > 0
     assert client.get("/demo-status/TX-CARD-001").json()["status"] == "declined"
 
@@ -93,6 +95,46 @@ def test_capabilities(client):
     body = response.json()
     assert "declined_card_payment" in body["lookup_intents"]
     assert body["synthetic_only"] is True
+
+
+def test_nvidia_is_disabled_even_with_credentials(client, monkeypatch):
+    monkeypatch.setenv("NVIDIA_API_KEY", "unused-test-key")
+    monkeypatch.delenv("ZAI_API_KEY", raising=False)
+    monkeypatch.setattr(api, "get_secret", lambda *args, **kwargs: None)
+    assert client.get("/capabilities").json()["generation_available"] is False
+    response = client.post("/support", json={"question": "My card declined", "use_llm": True})
+    assert response.status_code == 400
+    assert "disabled" in response.json()["detail"]
+
+
+def test_http_client_preserves_evidence_and_lookup(client):
+    from fintech_support.api_client import SupportAPIClient
+
+    remote = SupportAPIClient("http://testserver", transport=client)
+    result = remote.respond("My card payment was declined", record_reference="TX-CARD-001")
+    assert result.tool_result.reason_code == "CARD_FROZEN"
+    assert result.retrieved[0].faq.content
+    assert result.generation_status == "disabled"
+    assert remote.request_id
+
+
+def test_http_client_reports_validation_error(client):
+    from fintech_support.api_client import SupportAPIClient
+
+    remote = SupportAPIClient("http://testserver", transport=client)
+    with pytest.raises(ValueError, match="conflicts"):
+        remote.respond("My TX-CARD-001 card payment declined", record_reference="TX-CARD-002")
+
+
+def test_http_client_reports_backend_failure(client, monkeypatch):
+    from fintech_support.api_client import SupportAPIClient
+
+    def fail():
+        raise OSError("private-path")
+
+    monkeypatch.setattr(api, "get_copilot", fail)
+    with pytest.raises(RuntimeError, match="HTTP 503"):
+        SupportAPIClient("http://testserver", transport=client).respond("My card declined")
 
 
 def test_request_metrics_and_identifier(client):
@@ -134,3 +176,18 @@ def test_batch_classification_returns_model_identity(client):
 @pytest.mark.parametrize("questions", [[], [" "], ["x" * 2001], ["x"] * 17])
 def test_batch_classification_rejects_invalid_input(client, questions):
     assert client.post("/classify/batch", json={"questions": questions}).status_code == 422
+
+def test_remote_ui_uses_api_without_loading_local_models(client, monkeypatch):
+    from streamlit.testing.v1 import AppTest
+
+    monkeypatch.setenv("SUPPORT_API_URL", "http://testserver")
+    monkeypatch.setenv("NVIDIA_API_KEY", "unused-test-key")
+    monkeypatch.setattr("fintech_support.api_client.requests.Session", lambda: client)
+    app = AppTest.from_file(api.ROOT / "app.py", default_timeout=120).run()
+    assert not app.exception
+    assert not any("Response path" == widget.label for widget in app.selectbox)
+    assert not {"Intent classifier", "FAQ retrieval strategy"} & {widget.label for widget in app.selectbox}
+    assert not app.tabs
+    assert not app.slider
+    assert len(app.chat_input) == 1
+    assert not any(button.label.startswith("Run support analysis") for button in app.button)

@@ -8,6 +8,8 @@ kubectl apply -f k8s/namespace.yaml
 kubectl create secret generic "$name" -n "$namespace" \
   --from-literal=HF_TOKEN="$HF_TOKEN" --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/sessions.yaml
+kubectl rollout status deployment/copilot-sessions -n "$namespace" --timeout=3m
 kubectl create --dry-run=client -f k8s/deployment.yaml -o json | python3 -c '
 import json,os,sys
 x=json.load(sys.stdin)

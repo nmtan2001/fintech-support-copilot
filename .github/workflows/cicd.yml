@@ -120,6 +120,7 @@ jobs:
       contents: read
     env:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
       KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG_CONTENT }}
       GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
       GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
@@ -169,8 +170,18 @@ jobs:
             echo "Set GHCR_USERNAME and GHCR_READ_TOKEN in the kubernetes-demo environment." >&2
             exit 1
           fi
-          kubectl create secret generic fintech-support-copilot \
-            --namespace fintech-support --from-literal=HF_TOKEN="$HF_TOKEN" --dry-run=client -o yaml | kubectl apply -f -
+          python3 - <<'PY'
+          import json, os, subprocess
+          name, namespace = "fintech-support-copilot", "fintech-support"
+          existing = subprocess.check_output([
+              "kubectl", "-n", namespace, "get", "secret", name, "--ignore-not-found", "-o", "json"
+          ], text=True)
+          data = json.loads(existing).get("data", {}) if existing.strip() else {}
+          values = {key: os.environ[key] for key in ("HF_TOKEN", "ZAI_API_KEY") if os.environ.get(key)}
+          secret = {"apiVersion": "v1", "kind": "Secret", "type": "Opaque",
+                    "metadata": {"name": name, "namespace": namespace}, "data": data, "stringData": values}
+          subprocess.run(["kubectl", "apply", "-f", "-"], input=json.dumps(secret), text=True, check=True)
+          PY
           kubectl create secret docker-registry ghcr-pull \
             --namespace fintech-support \
             --docker-server=ghcr.io \

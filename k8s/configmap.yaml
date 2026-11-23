@@ -9,3 +9,5 @@ data:
   HF_HOME: /tmp/huggingface
   DEMO_DATABASE_PATH: /tmp/state/demo.sqlite
   TOKENIZERS_PARALLELISM: "false"
+  REDIS_URL: redis://copilot-sessions:6379/0
+  HANDBOOK_BACKEND: lexical

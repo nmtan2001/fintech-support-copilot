@@ -1,0 +1,47 @@
+{
+  "synthetic_only": true,
+  "customers": [
+    {
+      "id": "DEMO-ALPHA",
+      "name": "Demo customer Alpha",
+      "references": [
+        "TX-CARD-001",
+        "TX-CARD-002",
+        "TX-CARD-003",
+        "TX-CARD-004",
+        "TX-CARD-005",
+        "TX-TRF-001",
+        "TX-TRF-002",
+        "TX-TRF-003",
+        "TX-TRF-004",
+        "TX-TRF-005",
+        "CARD-001",
+        "CARD-002",
+        "CARD-003",
+        "CARD-004",
+        "CARD-005"
+      ]
+    },
+    {
+      "id": "DEMO-BETA",
+      "name": "Demo customer Beta",
+      "references": [
+        "TX-CARD-006",
+        "TX-CARD-007",
+        "TX-CARD-008",
+        "TX-CARD-009",
+        "TX-CARD-010",
+        "TX-TRF-006",
+        "TX-TRF-007",
+        "TX-TRF-008",
+        "TX-TRF-009",
+        "TX-TRF-010",
+        "CARD-006",
+        "CARD-007",
+        "CARD-008",
+        "CARD-009",
+        "CARD-010"
+      ]
+    }
+  ]
+}

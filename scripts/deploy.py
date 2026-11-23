@@ -73,6 +73,8 @@ def deploy(image, version, commit):
         "copilot/version": version, "copilot/commit": commit})
     # Snapshot before mutation. Rollback restores config as well as the pod template.
     try:
+        kubectl("apply", "-f", "k8s/sessions.yaml")
+        kubectl("rollout", "status", "deployment/copilot-sessions", "--timeout=3m")
         kubectl("apply", "-f", "k8s/configmap.yaml")
         kubectl("apply", "-f", "-", data=json.dumps(deployment))
         kubectl("apply", "-f", "k8s/service.yaml")
